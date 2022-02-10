@@ -1,0 +1,7 @@
+This project is my implementation of u-net in Keras.
+
+My goal is to use it for DIBCO image binarization research and also as a stress tester.
+
+I will start by making it run on my hardware under a conda environment and using PlaidML. Later I will make a docker image so that I can try it on other computers more easily.
+
+Stephen Stengel <stephen.stengel@cwu.edu> 2022
