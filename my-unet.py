@@ -22,6 +22,7 @@ from skimage.transform import resize
 from matplotlib import pyplot as plt
 from skimage.util import img_as_uint
 from skimage.util import img_as_bool
+from skimage.color import rgb2gray
 
 
 import tensorflow as tf
@@ -93,11 +94,10 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 	
 	
 
-def createStandardUnet(input_size=(128,128,3), num_classes=2):
-# ~ def createStandardUnet(input_size=(128,128,1), num_classes=2):
+def createStandardUnet(input_size=(128,128,1)):
 	inputs = Input(input_size)
 	conv5, conv4, conv3, conv2, conv1 = encode(inputs)
-	conv10 = decode(conv5, conv4, conv3, conv2, conv1, num_classes)
+	conv10 = decode(conv5, conv4, conv3, conv2, conv1)
 	model = Model(inputs, conv10)
 	
 	
@@ -124,7 +124,7 @@ def encode(inputs):
 	return conv5, conv4, conv3, conv2, conv1
 
 #I took out the crops. They were not in the original u-net. The original code had them though.
-def decode(conv5, conv4, conv3, conv2, conv1, num_classes):
+def decode(conv5, conv4, conv3, conv2, conv1):
 	up6 = Conv2DTranspose(512, 2, strides=2, padding="same")(conv5)
 	concat6 = Concatenate(axis=3)([conv4,up6])
 	conv6 = Conv2D(512, 3, activation = 'relu', padding="same")(concat6)
@@ -144,7 +144,7 @@ def decode(conv5, conv4, conv3, conv2, conv1, num_classes):
 	concat9 = Concatenate(axis=3)([conv1,up9])
 	conv9 = Conv2D(64, 3, activation = 'relu', padding="same")(concat9)
 	conv9 = Conv2D(64, 3, activation = 'relu', padding="same")(conv9)
-	conv10 = Conv2D(num_classes, 1, padding="same")(conv9)
+	conv10 = Conv2D(1, 1, padding="same")(conv9)
 	conv10 = Softmax(axis=-1)(conv10)
 
 	return conv10
@@ -169,6 +169,7 @@ def createTrainAndTestSets():
 		testImageFileNames, testTruthFileNames = getFileNames()
 
 	trainImages, trainTruth = getImageAndTruth(trainImageFileNames, trainTruthFileNames)
+	trainImages, trainTruth = convertTrainToGrayscale(trainImages, trainTruth) # :P
 	testImage, testTruth = getImageAndTruth(testImageFileNames, testTruthFileNames)
 	
 	return trainImages, trainTruth, testImage, testTruth
@@ -211,6 +212,15 @@ def getImageAndTruth(trainImageFileNames, trainTruthFileNames):
 	trainImages, trainTruth = np.asarray(trainImages), np.asarray(trainTruth)
 	
 	return trainImages, trainTruth
+
+def convertTrainToGrayscale(trainImages, trainTruth):
+	outImage, outTruth = [], []
+	for image in trainImages:
+		outImage.append( rgb2gray(image) )
+	for truth in trainTruth:
+		outTruth.append( rgb2gray(truth) )
+	
+	return np.asarray(outImage), np.asarray(outTruth)
 
 #returns the filenames of the images for (trainImage, trainTruth),(testimage, testTruth)
 #hardcoded!
