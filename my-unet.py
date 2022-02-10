@@ -32,10 +32,11 @@ from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 
 
-HACK_SIZE = 128
+# ~ HACK_SIZE = 128
+HACK_SIZE = 256
 GLOBAL_HACK_height, GLOBAL_HACK_width = HACK_SIZE, HACK_SIZE
 
-IS_GLOBAL_PRINTING_ON = True
+IS_GLOBAL_PRINTING_ON = False
 
 print("Done!")
 
@@ -84,13 +85,16 @@ def main(args):
 def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 	standardUnetLol = createStandardUnet()
 	standardUnetLol.summary()
-	earlyStopper = callbacks.EarlyStopping(monitor="val_accuracy", patience=2)
+	earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience=2)
 	checkpointer = callbacks.ModelCheckpoint(
-			filepath=tmpFolder + "myCheckpoint", monitor="val_loss", save_best_only=True)
+			filepath=tmpFolder + "myCheckpoint", monitor="val_loss",
+			save_best_only=True,
+			mode="min")
 	callbacks_list = [earlyStopper, checkpointer]
 	standardUnetLol.fit(trainImages,
 			trainTruth,
 			epochs=5,
+			batch_size=4, ####?what shouldst it be?
 			callbacks=callbacks_list,
 			validation_data=(testImages, testTruths))
 	
@@ -98,7 +102,7 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 	
 	
 
-def createStandardUnet(input_size=(128,128,1)):
+def createStandardUnet(input_size=(GLOBAL_HACK_height, GLOBAL_HACK_width, 3)):
 	inputs = Input(input_size)
 	conv5, conv4, conv3, conv2, conv1 = encode(inputs)
 	conv10 = decode(conv5, conv4, conv3, conv2, conv1)
@@ -110,20 +114,20 @@ def createStandardUnet(input_size=(128,128,1)):
 	return model
 
 def encode(inputs):
-	conv1 = Conv2D(64, 1, activation = 'relu', padding="same")(inputs)
-	conv1 = Conv2D(64, 1, activation = 'relu', padding="same")(conv1)
+	conv1 = Conv2D(64, 3, activation = 'relu', padding="same")(inputs)
+	conv1 = Conv2D(64, 3, activation = 'relu', padding="same")(conv1)
 	pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-	conv2 = Conv2D(128, 1, activation = 'relu', padding="same")(pool1)
-	conv2 = Conv2D(128, 1, activation = 'relu', padding="same")(conv2)
+	conv2 = Conv2D(128, 3, activation = 'relu', padding="same")(pool1)
+	conv2 = Conv2D(128, 3, activation = 'relu', padding="same")(conv2)
 	pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-	conv3 = Conv2D(256, 1, activation = 'relu', padding="same")(pool2)
-	conv3 = Conv2D(256, 1, activation = 'relu', padding="same")(conv3)
+	conv3 = Conv2D(256, 3, activation = 'relu', padding="same")(pool2)
+	conv3 = Conv2D(256, 3, activation = 'relu', padding="same")(conv3)
 	pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
-	conv4 = Conv2D(512, 1, activation = 'relu', padding="same")(pool3)
-	conv4 = Conv2D(512, 1, activation = 'relu', padding="same")(conv4)
+	conv4 = Conv2D(512, 3, activation = 'relu', padding="same")(pool3)
+	conv4 = Conv2D(512, 3, activation = 'relu', padding="same")(conv4)
 	pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
-	conv5 = Conv2D(1024, 1, activation = 'relu', padding="same")(pool4)
-	conv5 = Conv2D(1024, 1, activation = 'relu', padding="same")(conv5)
+	conv5 = Conv2D(1024, 3, activation = 'relu', padding="same")(pool4)
+	conv5 = Conv2D(1024, 3, activation = 'relu', padding="same")(conv5)
 
 	return conv5, conv4, conv3, conv2, conv1
 
@@ -131,23 +135,23 @@ def encode(inputs):
 def decode(conv5, conv4, conv3, conv2, conv1):
 	up6 = Conv2DTranspose(512, 2, strides=2, padding="same")(conv5)
 	concat6 = Concatenate(axis=3)([conv4,up6])
-	conv6 = Conv2D(512, 1, activation = 'relu', padding="same")(concat6)
-	conv6 = Conv2D(512, 1, activation = 'relu', padding="same")(conv6)
+	conv6 = Conv2D(512, 3, activation = 'relu', padding="same")(concat6)
+	conv6 = Conv2D(512, 3, activation = 'relu', padding="same")(conv6)
 	
 	up7 = Conv2DTranspose(256, 2, strides=2, padding="same")(conv6)
 	concat7 = Concatenate(axis=3)([conv3,up7])
-	conv7 = Conv2D(256, 1, activation = 'relu', padding="same")(concat7)
-	conv7 = Conv2D(256, 1, activation = 'relu', padding="same")(conv7)
+	conv7 = Conv2D(256, 3, activation = 'relu', padding="same")(concat7)
+	conv7 = Conv2D(256, 3, activation = 'relu', padding="same")(conv7)
 	
 	up8 = Conv2DTranspose(128, 2, strides=2, padding="same")(conv7)
 	concat8 = Concatenate(axis=3)([conv2,up8])
-	conv8 = Conv2D(128, 1, activation = 'relu', padding="same")(concat8)
-	conv8 = Conv2D(128, 1, activation = 'relu', padding="same")(conv8)
+	conv8 = Conv2D(128, 3, activation = 'relu', padding="same")(concat8)
+	conv8 = Conv2D(128, 3, activation = 'relu', padding="same")(conv8)
 	
 	up9 = Conv2DTranspose(64, 2, strides=2, padding="same")(conv8)
 	concat9 = Concatenate(axis=3)([conv1,up9])
-	conv9 = Conv2D(64, 1, activation = 'relu', padding="same")(concat9)
-	conv9 = Conv2D(64, 1, activation = 'relu', padding="same")(conv9)
+	conv9 = Conv2D(64, 3, activation = 'relu', padding="same")(concat9)
+	conv9 = Conv2D(64, 3, activation = 'relu', padding="same")(conv9)
 	conv10 = Conv2D(1, 1, padding="same")(conv9)
 	conv10 = Softmax(axis=-1)(conv10)
 
@@ -173,11 +177,11 @@ def createTrainAndTestSets():
 		testImageFileNames, testTruthFileNames = getFileNames()
 
 	trainImages, trainTruth = getImageAndTruth(trainImageFileNames, trainTruthFileNames)
-	trainImages = convertImagesToGrayscale(trainImages)
+	# ~ trainImages = convertImagesToGrayscale(trainImages)
 	trainTruth = convertImagesToGrayscale(trainTruth)
 	
 	testImage, testTruth = getImageAndTruth(testImageFileNames, testTruthFileNames)
-	testImage = convertImagesToGrayscale(testImage)
+	# ~ testImage = convertImagesToGrayscale(testImage)
 	testTruth = convertImagesToGrayscale(testTruth)
 
 	return trainImages, trainTruth, testImage, testTruth
@@ -278,7 +282,6 @@ def createTrainImageAndTrainTruthFileNames(trainImagePath, trainTruthPath):
 	
 
 def createTrainImageFileNamesList(trainImagePath):
-	# ~ trainFileNames = next(os.walk("../DIBCO/2017/Dataset"))[2] #this is a clever hack
 	trainFileNames = next(os.walk(trainImagePath))[2] #this is a clever hack
 	trainFileNames = [name.replace(".bmp", "") for name in trainFileNames]
 	
