@@ -32,11 +32,13 @@ from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 
 
-# ~ HACK_SIZE = 128
-HACK_SIZE = 256
+# ~ HACK_SIZE = 64
+HACK_SIZE = 128
+# ~ HACK_SIZE = 256
 GLOBAL_HACK_height, GLOBAL_HACK_width = HACK_SIZE, HACK_SIZE
 
-IS_GLOBAL_PRINTING_ON = False
+# ~ IS_GLOBAL_PRINTING_ON = False
+IS_GLOBAL_PRINTING_ON = True
 
 print("Done!")
 
@@ -282,10 +284,17 @@ def createTrainImageAndTrainTruthFileNames(trainImagePath, trainTruthPath):
 	
 
 def createTrainImageFileNamesList(trainImagePath):
-	trainFileNames = next(os.walk(trainImagePath))[2] #this is a clever hack
-	trainFileNames = [name.replace(".bmp", "") for name in trainFileNames]
+	# ~ trainFileNames = next(os.walk(trainImagePath))[2] #this is a clever hack
+	# ~ trainFileNames = [name.replace(".bmp", "") for name in trainFileNames]
 	
-	return trainFileNames
+	trainFileNames = os.listdir(trainImagePath)
+	
+	print(trainFileNames)
+	
+	# ~ print("pausing...")
+	# ~ a = input()
+	
+	return [name.replace(".bmp", "") for name in trainFileNames]
 
 
 #This makes a list with the same order of the names but with _gt apended.
