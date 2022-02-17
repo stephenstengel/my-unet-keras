@@ -85,30 +85,51 @@ def main(args):
 	trainTruth = trainTruth[:30]
 	testImages = testImages[:20]
 	testTruths = testTruths[:20]
+	# ~ trainImages = trainImages[:6]
+	# ~ trainTruth = trainTruth[:6]
+	# ~ testImages = testImages[:4]
+	# ~ testTruths = testTruths[:4]
 	print("There are " + str(len(trainImages)) + " training images.")
 	print("There are " + str(len(testImages)) + " testing images.")
-	trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder)
-	# ~ performEvaluation(history)
-	
-	return 0
 
-# ~ def performEvaluation(history):
-	# ~ import matplotlib.pyplot as plt
-	# ~ accuracy = history.history["accuracy"]
-	# ~ val_accuracy = history.history["val_accuracy"]
-	# ~ loss = history.history["loss"]
-	# ~ val_loss = history.history["val_loss"]
-	# ~ epochs = range(1, len(accuracy) + 1)
-	# ~ plt.plot(epochs, accuracy, "bo", label="Training accuracy")
-	# ~ plt.plot(epochs, val_accuracy, "b", label="Validation accuracy")
-	# ~ plt.title("Training and validation accuracy")
-	# ~ plt.legend()
-	# ~ plt.figure()
-	# ~ plt.plot(epochs, loss, "bo", label="Training loss")
-	# ~ plt.plot(epochs, val_loss, "b", label="Validation loss")
-	# ~ plt.title("Training and validation loss")
-	# ~ plt.legend()
-	# ~ plt.show()
+	theModel, theHistory = trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder)
+	# ~ something = thenet(testImages[0])
+
+	print("Saving model...")
+	theModel.save("./tmp/saved-model.h5")
+	#### ~ model = keras.models.load_model(
+	print("Done!")
+	print("Calculating scores...")
+	scores = theModel.evaluate(testImages, testTruths)
+	print("Done!")
+	print(scores)
+	
+	print(str(theHistory.history))
+	print("%s: %.2f%%" % (theModel.metrics_names[1], scores[1]*100))
+	
+	performEvaluation(theHistory)
+
+	return 0 #comment out and use python3 -i my-unet.py  to keep interpreter open for experimentation.
+	# ~ sys.exit()
+
+def performEvaluation(history):
+	accuracy = history.history["acc"]
+	val_accuracy = history.history["val_acc"]
+	loss = history.history["loss"]
+	val_loss = history.history["val_loss"]
+	epochs = range(1, len(accuracy) + 1)
+	plt.plot(epochs, accuracy, "bo", label="Training accuracy")
+	plt.plot(epochs, val_accuracy, "b", label="Validation accuracy")
+	plt.title("Training and validation accuracy")
+	plt.legend()
+	plt.figure()
+	plt.savefig("trainvalacc" + ".png")
+	plt.plot(epochs, loss, "bo", label="Training loss")
+	plt.plot(epochs, val_loss, "b", label="Validation loss")
+	plt.title("Training and validation loss")
+	plt.legend()
+	plt.savefig("trainvalloss" + ".png")
+	plt.show()
 
 
 def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
@@ -130,7 +151,7 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 	callbacks_list = [earlyStopper, checkpointer]
 	# ~ callbacks_list = [checkpointer]
 	
-	standardUnetLol.fit(
+	myHistory = standardUnetLol.fit(
 			x = trainImages,
 			y = trainTruth,
 			epochs = 5,
@@ -138,15 +159,7 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 			callbacks=callbacks_list,
 			validation_split = 0.33333)
 	
-	print("Saving model...")
-	standardUnetLol.save("saved-unet-lol.h5")
-	print("Done!")
-	print("Calculating scores...")
-	scores = standardUnetLol.evaluate(testImages, testTruths)
-	print("Done!")
-	print(scores)
-	# ~ print("Scores???...")
-	# ~ print("%s: %.2f%%" % (standardUnetLol.metrics_names[1], scores[1]*100))
+	return standardUnetLol, myHistory
 	
 	
 
