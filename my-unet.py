@@ -80,15 +80,34 @@ def main(args):
 		plt.show()
 	
 
+	NUM_SQUARES = 30
+	NUM_SQUARES_TEST = int(NUM_SQUARES // 1.5)
+
 	#This block reduces the input for testing.
+	# ~ numRange = np.arange(0, len(trainImages))
+	rng = np.random.default_rng(12345)
+	pickIndexes = rng.integers(low = 0, high = len(trainImages), size = NUM_SQUARES)
+	# ~ trainImages1 = np.asarray([trainImages[x] for x in pickIndexes])
+	trainImages = trainImages[pickIndexes]
+	# ~ trainTruth = np.asarray([trainTruth[x] for x in pickIndexes])
+	trainTruth = trainTruth[pickIndexes]
+	
+	rng = np.random.default_rng(23456)
+	pickIndexes = rng.integers(low = 0, high = len(testImages), size = NUM_SQUARES_TEST)
+	# ~ testImages = np.asarray([testImages[x]] for x in pickIndexes)
+	testImages = testImages[pickIndexes]
+	# ~ testTruths = np.asarray([testTruths[x]] for x in pickIndexes)
+	testTruths = testTruths[pickIndexes]
+	
+	
 	# ~ trainImages = trainImages[:30]
 	# ~ trainTruth = trainTruth[:30]
 	# ~ testImages = testImages[:20]
 	# ~ testTruths = testTruths[:20]
-	trainImages = trainImages[:6]
-	trainTruth = trainTruth[:6]
-	testImages = testImages[:4]
-	testTruths = testTruths[:4]
+	# ~ trainImages = trainImages[:6]
+	# ~ trainTruth = trainTruth[:6]
+	# ~ testImages = testImages[:4]
+	# ~ testTruths = testTruths[:4]
 	print("There are " + str(len(trainImages)) + " training images.")
 	print("There are " + str(len(testImages)) + " testing images.")
 
@@ -110,7 +129,30 @@ def main(args):
 	
 	randNum = random.randint(0, len(testImages) - 1)
 	modelOut = theModel.predict(testImages)
+	# ~ modelOut = theModel.predict(testImages, testTruths)
 	print("output as string: " + str(modelOut))
+	
+	# ~ modelOut = np.asarray(modelOut)
+	print("modelout shape: " + str(modelOut.shape) )
+	print("modelout[0] shape: " + str(modelOut[0].shape))
+	
+	os.system("mkdir -p ./tmp/predictions")
+	
+	for i in range(len(modelOut)):
+		imshow(modelOut[i] / 255)
+		plt.savefig("./tmp/predictions/fig[" + str(i) + "]A.png")
+		# ~ plt.show()
+		imshow(np.squeeze(modelOut[i]))
+		plt.savefig("./tmp/predictions/fig[" + str(i) + "]B.png")
+		# ~ plt.show()
+	
+	# ~ imshow(modelOut[0] / 255)
+	# ~ plt.show()
+	# ~ imshow(np.squeeze(modelOut[0]))
+	# ~ plt.show()
+	
+	# ~ predictsIthink = np.argmax(modelOut, axis=1)
+	# ~ print("???: " + str(predictsIthink))
 
 	# ~ model = keras.models.load_model("./tmp/saved-model.h5")
 	
@@ -121,8 +163,8 @@ def main(args):
 	# ~ imshow(np.squeeze(testTruths[randNum]))
 	# ~ plt.show()
 
-	return 0 #comment out and use python3 -i my-unet.py  to keep interpreter open for experimentation.
-	# ~ sys.exit()
+	return 0
+
 
 def performEvaluation(history):
 	accuracy = history.history["acc"]
