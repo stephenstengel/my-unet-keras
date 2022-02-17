@@ -121,7 +121,7 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 	# ~ print("pauseing!")
 	# ~ a = input()
 	
-	earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 3)
+	earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 2)
 	checkpointer = callbacks.ModelCheckpoint(
 			filepath=tmpFolder + "myCheckpoint",
 			monitor="val_loss",
@@ -136,7 +136,7 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 			epochs = 5,
 			batch_size = 4, ####?what shouldst it be?
 			callbacks=callbacks_list,
-			validation_split = 0.2)
+			validation_split = 0.33333)
 	
 	print("Saving model...")
 	standardUnetLol.save("saved-unet-lol.h5")
@@ -157,7 +157,7 @@ def createStandardUnet(input_size=(GLOBAL_HACK_height, GLOBAL_HACK_width, 3)):
 	model = Model(inputs, conv10)
 	
 	
-	model.compile(optimizer = Adam(learning_rate=1e-4), loss='categorical_crossentropy')
+	model.compile(optimizer = Adam(learning_rate=1e-4), loss='categorical_crossentropy',  metrics=["acc"])
 	
 	return model
 
@@ -179,7 +179,7 @@ def encode(inputs):
 
 	return conv5, conv4, conv3, conv2, conv1
 
-#I took out the crops. They were not in the original u-net. The original code had them though.
+#I took out the crops.
 def decode(conv5, conv4, conv3, conv2, conv1):
 	up6 = Conv2DTranspose(512, 2, strides=2, padding="same")(conv5)
 	concat6 = Concatenate(axis=3)([conv4,up6])
@@ -230,11 +230,9 @@ def createTrainAndTestSets():
 		testImageFileNames, testTruthFileNames = getFileNames()
 
 	trainImages, trainTruth = getImageAndTruth(trainImageFileNames, trainTruthFileNames)
-	# ~ trainImages = convertImagesToGrayscale(trainImages)
 	trainTruth = convertImagesToGrayscale(trainTruth)
 	
 	testImage, testTruth = getImageAndTruth(testImageFileNames, testTruthFileNames)
-	# ~ testImage = convertImagesToGrayscale(testImage)
 	testTruth = convertImagesToGrayscale(testTruth)
 
 	return trainImages, trainTruth, testImage, testTruth
