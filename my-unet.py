@@ -82,7 +82,11 @@ def main(args):
 		plt.show()
 	
 
-	
+	#This block reduces the input for testing.
+	trainImages = trainImages[300:]
+	trainTruth = trainTruth[100:]
+	testImages = testImages[200:]
+	testTruths = testTruths[200:]
 	trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder)
 	# ~ performEvaluation(history)
 	
