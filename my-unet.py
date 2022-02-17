@@ -17,6 +17,7 @@ import os
 # ~ os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 import numpy as np
 import random
+from PIL import Image
 
 from skimage.io import imread, imshow
 from skimage.transform import resize
@@ -33,14 +34,14 @@ from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 
 
-HACK_SIZE = 64
-# ~ HACK_SIZE = 128
+# ~ HACK_SIZE = 64
+HACK_SIZE = 128
 # ~ HACK_SIZE = 256
 # ~ HACK_SIZE = 512
 GLOBAL_HACK_height, GLOBAL_HACK_width = HACK_SIZE, HACK_SIZE
 
-IS_GLOBAL_PRINTING_ON = False
-# ~ IS_GLOBAL_PRINTING_ON = True
+# ~ IS_GLOBAL_PRINTING_ON = False
+IS_GLOBAL_PRINTING_ON = True
 
 print("Done!")
 
@@ -226,43 +227,71 @@ def createTrainAndTestSets():
 #This function gets the source image, cuts it into smaller squares, then
 #adds each square to an array for output. The original image squares
 #will correspond to the base truth squares.
-def getImageAndTruth(trainImageFileNames, trainTruthFileNames):
-	trainImages, trainTruth, testImage, testTruth = [], [], [], []
+#NOTE WELL: This version currently ignores the right side and bottom row
+#of the image that does not divide evenly into squares.
+#I can fix this later by some method that includes those parts.
+#Maybe I should choose random samples for the squares?
+def getImageAndTruth(originalFilenames, truthFilenames):
+	outOriginals, outTruths = [], []
 	
-	for i in range(len(trainImageFileNames)):
-		print("Importing " + trainImageFileNames[i] + "...")
-		image = imread(trainImageFileNames[i])[:, :, :3] #this is pretty arcane. research later
-		image = resize( \
-				image, \
-				(GLOBAL_HACK_height, GLOBAL_HACK_width), \
-				mode="constant", \
-				preserve_range=True)
-		trainImages.append(image)
+	for i in range(len(originalFilenames)):
+		print("Importing " + originalFilenames[i] + "...")
+		myOriginal = imread(originalFilenames[i])[:, :, :3] #this is pretty arcane. research later
+		myTruth = imread(truthFilenames[i])[:, :, :3] #this is pretty arcane. research later
+		
+		#Now make the cuts and save the results to a list. Then later convert list to array.
+		originalCuts = cutImageIntoSmallSquares(myOriginal)
+		truthCuts = cutImageIntoSmallSquares(myTruth)
+		
+		#for loop to add cuts to out lists, or I think I remember a one liner to do it?
+		#yes-- list has the .extend() function. it adds the elements of a list to another list.
+		outOriginals.extend(originalCuts)
+		outTruths.extend(truthCuts)
+
+	#can move to return line later maybe.
+	outOriginals, outTruths = np.asarray(outOriginals), np.asarray(outTruths)
 	
-		#This part isn't quite right. I need a ompletely binary image out.
-		#I need thresholding apparently: binarized_brains = (brains > threshold_value).astype(int)
-		#https://stackoverflow.com/questions/49210078/binarize-image-data
-		# ~ truth = np.zeros((GLOBAL_HACK_height, GLOBAL_HACK_width, 1), dtype=np.bool) #need to OR the pixels that are activated.
-		truth = np.zeros((GLOBAL_HACK_height, GLOBAL_HACK_width, 1), dtype=bool) #need to OR the pixels that are activated.
-		truthOR = imread(trainTruthFileNames[i])
-		truthOR = resize(truthOR, (GLOBAL_HACK_height, GLOBAL_HACK_width), mode="constant")
-		# ~ truthOR = resize(truthOR, (GLOBAL_HACK_height, GLOBAL_HACK_width), mode="constant", anti_aliasing=True)
-		# ~ truthOR = resize(truthOR, (GLOBAL_HACK_height, GLOBAL_HACK_width), mode="constant", anti_aliasing=False)
-		# ~ truthOR = resize(truthOR, (GLOBAL_HACK_height, GLOBAL_HACK_width), anti_aliasing=True)
-		# ~ truthOR = resize(truthOR, (GLOBAL_HACK_height, GLOBAL_HACK_width), anti_aliasing=False)
-		# ~ truthOR = resize(truthOR, (GLOBAL_HACK_height, GLOBAL_HACK_width))
-		truthOR = np.maximum(truth, truthOR)
-		
-		truthOR = img_as_bool(truthOR)
-		truthOR = img_as_uint(truthOR)
-		
-		# ~ truthOR = np.logical_or(truth, truthOR) #Makes it to the wrong type
-		
-		trainTruth.append( truthOR )
-		
-	trainImages, trainTruth = np.asarray(trainImages), np.asarray(trainTruth)
+	return outOriginals, outTruths
+
+
+#Cut an image into smaller squares, returns them as a list.
+#inspiration from: 
+#https://stackoverflow.com/questions/5953373/how-to-split-image-into-multiple-pieces-in-python#7051075
+#Change to using numpy methods later for much speed-up?:
+#https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7?gi=2faa21fa5964
+#TODO::: I could add whitespace to the edges of the input image to get
+#the full range of origin pixels?
+#The imput is in scikit-image format. It is converted to pillow to crop
+#more easily and for saving???. Then converted back for the output list.
+#Whitespace is appended to the right and bottom of the image so that the crop will include everything.
+def cutImageIntoSmallSquares(skImage):
+	skOutList = []
+	myImage = Image.fromarray(skImage)
+	imageWidth, imageHeight = myImage.size
+	tmpW = ((imageWidth // HACK_SIZE) + 1) * HACK_SIZE
+	tmpH = ((imageHeight // HACK_SIZE) + 1) * HACK_SIZE
+	tmpImg = Image.new(myImage.mode, (tmpW, tmpH), (255, 255, 255))
+	tmpImg.paste(myImage, myImage.getbbox())
+	myImage = tmpImg
 	
-	return trainImages, trainTruth
+	# ~ tmp2 = np.asarray(myImage)
+	# ~ imshow(tmp2)
+	# ~ plt.show()
+	
+	for upper in range(0, imageHeight, HACK_SIZE):
+		lower = upper + HACK_SIZE
+		for left in range(0, imageWidth, HACK_SIZE):
+			right = left + HACK_SIZE
+			cropBounds = (left, upper, right, lower)
+			cropped = myImage.crop(cropBounds)
+			cropped = np.asarray(cropped)
+			skOutList.append(cropped)
+			
+			# ~ imshow(cropped / 255)
+			# ~ plt.show()
+		
+	return skOutList
+	
 
 # ~ def convertTrainToGrayscale(trainImages, trainTruth):
 	# ~ outImage, outTruth = [], []
