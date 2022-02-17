@@ -34,14 +34,14 @@ from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 
 
-# ~ HACK_SIZE = 64
-HACK_SIZE = 128
+HACK_SIZE = 64
+# ~ HACK_SIZE = 128
 # ~ HACK_SIZE = 256
 # ~ HACK_SIZE = 512
 GLOBAL_HACK_height, GLOBAL_HACK_width = HACK_SIZE, HACK_SIZE
 
-# ~ IS_GLOBAL_PRINTING_ON = False
-IS_GLOBAL_PRINTING_ON = True
+IS_GLOBAL_PRINTING_ON = False
+# ~ IS_GLOBAL_PRINTING_ON = True
 
 print("Done!")
 
@@ -112,8 +112,15 @@ def main(args):
 
 
 def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
+	
+	print("shape of trainImages: " + str(trainImages.shape))
+	# ~ print("pauseing!")
+	# ~ a = input()
 	standardUnetLol = createStandardUnet()
 	standardUnetLol.summary()
+	# ~ print("pauseing!")
+	# ~ a = input()
+	
 	earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 3)
 	checkpointer = callbacks.ModelCheckpoint(
 			filepath=tmpFolder + "myCheckpoint",
@@ -193,8 +200,13 @@ def decode(conv5, conv4, conv3, conv2, conv1):
 	concat9 = Concatenate(axis=3)([conv1,up9])
 	conv9 = Conv2D(64, 3, activation = 'relu', padding="same")(concat9)
 	conv9 = Conv2D(64, 3, activation = 'relu', padding="same")(conv9)
-	conv10 = Conv2D(1, 2, padding="same")(conv9)
+	# ~ conv10 = Conv2D(2, 1, padding="same")(conv9)
+	# ~ conv10 = Conv2D(1, 1, padding="same")(conv9)
+	# ~ conv10 = Conv2D(1, (1, 1), padding="same")(conv9)
+	conv10 = Conv2D(1, (1, 1), padding="same", activation="sigmoid")(conv9)
 	conv10 = Softmax(axis=-1)(conv10)
+	
+	#add something to view image here?
 
 	return conv10
 
