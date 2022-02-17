@@ -51,8 +51,6 @@ def main(args):
 	print("Creating train and test sets...")
 	trainImages, trainTruth, testImages, testTruths = createTrainAndTestSets()
 	print("Done!")
-	print("There are " + str(len(trainImages)) + " training images.")
-	print("There are " + str(len(testImages)) + " testing images.")
 	
 	#Add time to filename later
 	tmpFolder = "./tmp/"
@@ -83,10 +81,12 @@ def main(args):
 	
 
 	#This block reduces the input for testing.
-	trainImages = trainImages[300:]
-	trainTruth = trainTruth[100:]
-	testImages = testImages[200:]
-	testTruths = testTruths[200:]
+	trainImages = trainImages[:30]
+	trainTruth = trainTruth[:30]
+	testImages = testImages[:20]
+	testTruths = testTruths[:20]
+	print("There are " + str(len(trainImages)) + " training images.")
+	print("There are " + str(len(testImages)) + " testing images.")
 	trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder)
 	# ~ performEvaluation(history)
 	
