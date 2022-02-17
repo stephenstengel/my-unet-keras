@@ -81,14 +81,14 @@ def main(args):
 	
 
 	#This block reduces the input for testing.
-	trainImages = trainImages[:30]
-	trainTruth = trainTruth[:30]
-	testImages = testImages[:20]
-	testTruths = testTruths[:20]
-	# ~ trainImages = trainImages[:6]
-	# ~ trainTruth = trainTruth[:6]
-	# ~ testImages = testImages[:4]
-	# ~ testTruths = testTruths[:4]
+	# ~ trainImages = trainImages[:30]
+	# ~ trainTruth = trainTruth[:30]
+	# ~ testImages = testImages[:20]
+	# ~ testTruths = testTruths[:20]
+	trainImages = trainImages[:6]
+	trainTruth = trainTruth[:6]
+	testImages = testImages[:4]
+	testTruths = testTruths[:4]
 	print("There are " + str(len(trainImages)) + " training images.")
 	print("There are " + str(len(testImages)) + " testing images.")
 
@@ -97,17 +97,29 @@ def main(args):
 
 	print("Saving model...")
 	theModel.save("./tmp/saved-model.h5")
-	#### ~ model = keras.models.load_model(
 	print("Done!")
 	print("Calculating scores...")
 	scores = theModel.evaluate(testImages, testTruths)
 	print("Done!")
-	print(scores)
+	print("Scores object: " + str(scores))
 	
 	print(str(theHistory.history))
 	print("%s: %.2f%%" % (theModel.metrics_names[1], scores[1]*100))
 	
 	performEvaluation(theHistory)
+	
+	randNum = random.randint(0, len(testImages) - 1)
+	modelOut = theModel.predict(testImages)
+	print("output as string: " + str(modelOut))
+
+	# ~ model = keras.models.load_model("./tmp/saved-model.h5")
+	
+	# ~ print("Predicted image " + str(randNum) + "...")
+	# ~ imshow(modelOut[randNum] / 255)
+	# ~ plt.show()
+	# ~ print("truth " + str(randNum) + "...")
+	# ~ imshow(np.squeeze(testTruths[randNum]))
+	# ~ plt.show()
 
 	return 0 #comment out and use python3 -i my-unet.py  to keep interpreter open for experimentation.
 	# ~ sys.exit()
@@ -118,18 +130,19 @@ def performEvaluation(history):
 	loss = history.history["loss"]
 	val_loss = history.history["val_loss"]
 	epochs = range(1, len(accuracy) + 1)
-	plt.plot(epochs, accuracy, "bo", label="Training accuracy")
-	plt.plot(epochs, val_accuracy, "b", label="Validation accuracy")
+	plt.plot(epochs, accuracy, "o", label="Training accuracy")
+	plt.plot(epochs, val_accuracy, "^", label="Validation accuracy")
 	plt.title("Training and validation accuracy")
 	plt.legend()
-	plt.figure()
 	plt.savefig("trainvalacc" + ".png")
-	plt.plot(epochs, loss, "bo", label="Training loss")
-	plt.plot(epochs, val_loss, "b", label="Validation loss")
-	plt.title("Training and validation loss")
-	plt.legend()
-	plt.savefig("trainvalloss" + ".png")
-	plt.show()
+	plt.clf()
+	# ~ plt.figure()
+	# ~ plt.plot(epochs, loss, "bo", label="Training loss")
+	# ~ plt.plot(epochs, val_loss, "b", label="Validation loss")
+	# ~ plt.title("Training and validation loss")
+	# ~ plt.legend()
+	# ~ plt.savefig("trainvalloss" + ".png")
+	# ~ plt.show()
 
 
 def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
@@ -142,14 +155,14 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 	# ~ print("pauseing!")
 	# ~ a = input()
 	
-	earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 2)
+	# ~ earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 2)
 	checkpointer = callbacks.ModelCheckpoint(
 			filepath=tmpFolder + "myCheckpoint",
 			monitor="val_loss",
 			save_best_only=True,
 			mode="min")
-	callbacks_list = [earlyStopper, checkpointer]
-	# ~ callbacks_list = [checkpointer]
+	# ~ callbacks_list = [earlyStopper, checkpointer]
+	callbacks_list = [checkpointer]
 	
 	myHistory = standardUnetLol.fit(
 			x = trainImages,
