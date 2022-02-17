@@ -14,6 +14,7 @@
 
 print("Running imports...")
 import os
+# ~ os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 import numpy as np
 import random
 
@@ -32,13 +33,14 @@ from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 
 
-# ~ HACK_SIZE = 64
-HACK_SIZE = 128
+HACK_SIZE = 64
+# ~ HACK_SIZE = 128
 # ~ HACK_SIZE = 256
+# ~ HACK_SIZE = 512
 GLOBAL_HACK_height, GLOBAL_HACK_width = HACK_SIZE, HACK_SIZE
 
-# ~ IS_GLOBAL_PRINTING_ON = False
-IS_GLOBAL_PRINTING_ON = True
+IS_GLOBAL_PRINTING_ON = False
+# ~ IS_GLOBAL_PRINTING_ON = True
 
 print("Done!")
 
@@ -81,26 +83,58 @@ def main(args):
 
 	
 	trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder)
+	# ~ performEvaluation(history)
 	
 	return 0
+
+# ~ def performEvaluation(history):
+	# ~ import matplotlib.pyplot as plt
+	# ~ accuracy = history.history["accuracy"]
+	# ~ val_accuracy = history.history["val_accuracy"]
+	# ~ loss = history.history["loss"]
+	# ~ val_loss = history.history["val_loss"]
+	# ~ epochs = range(1, len(accuracy) + 1)
+	# ~ plt.plot(epochs, accuracy, "bo", label="Training accuracy")
+	# ~ plt.plot(epochs, val_accuracy, "b", label="Validation accuracy")
+	# ~ plt.title("Training and validation accuracy")
+	# ~ plt.legend()
+	# ~ plt.figure()
+	# ~ plt.plot(epochs, loss, "bo", label="Training loss")
+	# ~ plt.plot(epochs, val_loss, "b", label="Validation loss")
+	# ~ plt.title("Training and validation loss")
+	# ~ plt.legend()
+	# ~ plt.show()
+
 
 def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 	standardUnetLol = createStandardUnet()
 	standardUnetLol.summary()
-	earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience=2)
+	earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 3)
 	checkpointer = callbacks.ModelCheckpoint(
-			filepath=tmpFolder + "myCheckpoint", monitor="val_loss",
+			filepath=tmpFolder + "myCheckpoint",
+			monitor="val_loss",
 			save_best_only=True,
 			mode="min")
 	callbacks_list = [earlyStopper, checkpointer]
-	standardUnetLol.fit(trainImages,
-			trainTruth,
-			epochs=5,
-			batch_size=4, ####?what shouldst it be?
+	# ~ callbacks_list = [checkpointer]
+	
+	standardUnetLol.fit(
+			x = trainImages,
+			y = trainTruth,
+			epochs = 5,
+			batch_size = 4, ####?what shouldst it be?
 			callbacks=callbacks_list,
-			validation_data=(testImages, testTruths))
+			validation_split = 0.2)
 	
-	
+	print("Saving model...")
+	standardUnetLol.save("saved-unet-lol.h5")
+	print("Done!")
+	print("Calculating scores...")
+	scores = standardUnetLol.evaluate(testImages, testTruths)
+	print("Done!")
+	print(scores)
+	# ~ print("Scores???...")
+	# ~ print("%s: %.2f%%" % (standardUnetLol.metrics_names[1], scores[1]*100))
 	
 	
 
@@ -154,7 +188,7 @@ def decode(conv5, conv4, conv3, conv2, conv1):
 	concat9 = Concatenate(axis=3)([conv1,up9])
 	conv9 = Conv2D(64, 3, activation = 'relu', padding="same")(concat9)
 	conv9 = Conv2D(64, 3, activation = 'relu', padding="same")(conv9)
-	conv10 = Conv2D(1, 1, padding="same")(conv9)
+	conv10 = Conv2D(1, 2, padding="same")(conv9)
 	conv10 = Softmax(axis=-1)(conv10)
 
 	return conv10
@@ -189,6 +223,9 @@ def createTrainAndTestSets():
 	return trainImages, trainTruth, testImage, testTruth
 
 		
+#This function gets the source image, cuts it into smaller squares, then
+#adds each square to an array for output. The original image squares
+#will correspond to the base truth squares.
 def getImageAndTruth(trainImageFileNames, trainTruthFileNames):
 	trainImages, trainTruth, testImage, testTruth = [], [], [], []
 	
