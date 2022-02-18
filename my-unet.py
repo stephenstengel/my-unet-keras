@@ -19,7 +19,7 @@ import numpy as np
 import random
 from PIL import Image
 
-from skimage.io import imread, imshow
+from skimage.io import imread, imshow, imsave
 from skimage.transform import resize
 from matplotlib import pyplot as plt
 from skimage.util import img_as_uint
@@ -34,8 +34,11 @@ from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 
 
-HACK_SIZE = 64
-# ~ HACK_SIZE = 128
+NUM_SQUARES = 30
+NUM_SQUARES_TEST = int(NUM_SQUARES // 1.5)
+
+# ~ HACK_SIZE = 64
+HACK_SIZE = 128
 # ~ HACK_SIZE = 256
 # ~ HACK_SIZE = 512
 GLOBAL_HACK_height, GLOBAL_HACK_width = HACK_SIZE, HACK_SIZE
@@ -78,10 +81,6 @@ def main(args):
 		print("truth " + str(randomBoy) + "...")
 		imshow(np.squeeze(testTruths[randomBoy]))
 		plt.show()
-	
-
-	NUM_SQUARES = 30
-	NUM_SQUARES_TEST = int(NUM_SQUARES // 1.5)
 
 	#This block reduces the input for testing.
 	# ~ numRange = np.arange(0, len(trainImages))
@@ -130,7 +129,7 @@ def main(args):
 	randNum = random.randint(0, len(testImages) - 1)
 	modelOut = theModel.predict(testImages)
 	# ~ modelOut = theModel.predict(testImages, testTruths)
-	print("output as string: " + str(modelOut))
+	# ~ print("output as string: " + str(modelOut))
 	
 	# ~ modelOut = np.asarray(modelOut)
 	print("modelout shape: " + str(modelOut.shape) )
@@ -139,30 +138,20 @@ def main(args):
 	os.system("mkdir -p ./tmp/predictions")
 	
 	for i in range(len(modelOut)):
-		imshow(modelOut[i] / 255)
-		plt.savefig("./tmp/predictions/fig[" + str(i) + "]A.png")
+		# ~ imshow(modelOut[i] / 255)
+		# ~ imshow(modelOut[i])
+		# ~ plt.savefig("./tmp/predictions/fig[" + str(i) + "]A.png")
+		# ~ imsave("./tmp/predictions/fig[" + str(i) + "].png", modelOut[i])
+		imsave("./tmp/predictions/fig[" + str(i) + "].png", modelOut[i] / 255) # WORKING
+		# ~ imsave("./tmp/predictions/fig[" + str(i) + "].png", modelOut[i] / 255)
+		# ~ plt.savefig("./tmp/predictions/fig[" + str(i) + "].png")
 		# ~ plt.show()
-		imshow(np.squeeze(modelOut[i]))
-		plt.savefig("./tmp/predictions/fig[" + str(i) + "]B.png")
+		# ~ imshow(np.squeeze(modelOut[i]))
+		# ~ plt.savefig("./tmp/predictions/fig[" + str(i) + "]B.png")
 		# ~ plt.show()
 	
-	# ~ imshow(modelOut[0] / 255)
-	# ~ plt.show()
-	# ~ imshow(np.squeeze(modelOut[0]))
-	# ~ plt.show()
-	
-	# ~ predictsIthink = np.argmax(modelOut, axis=1)
-	# ~ print("???: " + str(predictsIthink))
-
 	# ~ model = keras.models.load_model("./tmp/saved-model.h5")
 	
-	# ~ print("Predicted image " + str(randNum) + "...")
-	# ~ imshow(modelOut[randNum] / 255)
-	# ~ plt.show()
-	# ~ print("truth " + str(randNum) + "...")
-	# ~ imshow(np.squeeze(testTruths[randNum]))
-	# ~ plt.show()
-
 	return 0
 
 
@@ -210,7 +199,7 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 			x = trainImages,
 			y = trainTruth,
 			epochs = 5,
-			batch_size = 4, ####?what shouldst it be?
+			batch_size = 4, ####?what shouldst it be? for making sure all cores/gpu cores full
 			callbacks=callbacks_list,
 			validation_split = 0.33333)
 	
@@ -272,7 +261,7 @@ def decode(conv5, conv4, conv3, conv2, conv1):
 	# ~ conv10 = Conv2D(1, 1, padding="same")(conv9)
 	# ~ conv10 = Conv2D(1, (1, 1), padding="same")(conv9)
 	conv10 = Conv2D(1, (1, 1), padding="same", activation="sigmoid")(conv9)
-	conv10 = Softmax(axis=-1)(conv10)
+	# ~ conv10 = Softmax(axis=-1)(conv10)
 	
 	#add something to view image here?
 
