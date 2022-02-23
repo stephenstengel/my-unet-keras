@@ -34,14 +34,21 @@ from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 
 
-NUM_SQUARES = 30
+NUM_SQUARES = 100 #Reduced number of square inputs for training. 100 seems to be min for good results.
 NUM_SQUARES_TEST = int(NUM_SQUARES // 1.5)
 
-# ~ HACK_SIZE = 64
-HACK_SIZE = 128
+HACK_SIZE = 64 #64 is reasonably good for prototyping.
+#HACK_SIZE = 128
 # ~ HACK_SIZE = 256
 # ~ HACK_SIZE = 512
 GLOBAL_HACK_height, GLOBAL_HACK_width = HACK_SIZE, HACK_SIZE
+
+GLOBAL_EPOCHS = 15
+#GLOBAL_EPOCHS = 50 #Clear results start at 1000, 64, 50
+
+GLOBAL_BATCH_SIZE = 4 #just needs to be big enough to fill memory
+#64hack, 5 epoch, 16batch nearly fills 8gb on laptop. Half of 16 on other laptop.
+#Making batch too high seems to cause problems. 32 caused a NaN error when trying to write the output images on laptop1.
 
 IS_GLOBAL_PRINTING_ON = False
 # ~ IS_GLOBAL_PRINTING_ON = True
@@ -51,13 +58,40 @@ print("Done!")
 def main(args):
 	print("Hi!")
 	
+	if len(args) < 4:
+		print("bad input");
+		sys.exit(-1)
+	else:
+		NUM_SQUARES = int(sys.argv[1])
+		HACK_SIZE = int(sys.argv[2])
+		GLOBAL_EPOCHS = int(sys.argv[3])
+		GLOBAL_BATCH_SIZE = int(sys.argv[4])
+		if len(args) >= 5:
+			if str(sys.argv[5]) == "print":
+				IS_GLOBAL_PRINTING_ON = True
+	
+	print("Creating folders to store results...")
+	sq = str(NUM_SQUARES)
+	hk = str(HACK_SIZE)
+	ep = str(GLOBAL_EPOCHS)
+	ba = str(GLOBAL_BATCH_SIZE)
+	tmpFolder = "./tmp" + sq + "-" + hk + "-" + ep + "-" + ba + "/"
+	trainingFolder = tmpFolder + "trainingstuff/"
+	checkpointFolder = tmpFolder + "checkpoint/"
+	savedModelFolder = tmpFolder + "saved-model/"
+	predictionsFolder = tmpFolder + "predictions/"
+	os.system("mkdir -p " + trainingFolder)
+	os.system("mkdir -p " + checkpointFolder)
+	os.system("mkdir -p " + savedModelFolder)
+	os.system("mkdir -p " + predictionsFolder)
+	print("Done!")
+	
 	print("Creating train and test sets...")
 	trainImages, trainTruth, testImages, testTruths = createTrainAndTestSets()
 	print("Done!")
 	
-	#Add time to filename later
-	tmpFolder = "./tmp/"
-	saveExperimentImages(trainImages, trainTruth, testImages, testTruths, tmpFolder)
+	
+	saveExperimentImages(trainImages, trainTruth, testImages, testTruths, trainingFolder)
 
 	if IS_GLOBAL_PRINTING_ON:
 		print("shape of trainImages: " + str(np.shape(trainImages)))
@@ -72,6 +106,12 @@ def main(args):
 		print("truth " + str(randomBoy) + "...")
 		imshow(np.squeeze(trainTruth[randomBoy]))
 		plt.show()
+		
+		# ~ print("save test!...")
+		# ~ imsave("train[" + str(randomBoy) + "]raw.png", trainTruth[randomBoy])
+		# ~ imsave("train[" + str(randomBoy) + "]squeeze.png", np.squeeze(trainTruth[randomBoy]))
+		# ~ imsave("train[" + str(randomBoy) + "]div255.png", trainTruth[randomBoy] / 255)
+		# ~ print("Done!")
 		
 		print("Showing Testing stuff...")
 		randomBoy = random.randint(0, len(testImages) - 1)
@@ -110,11 +150,11 @@ def main(args):
 	print("There are " + str(len(trainImages)) + " training images.")
 	print("There are " + str(len(testImages)) + " testing images.")
 
-	theModel, theHistory = trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder)
+	theModel, theHistory = trainUnet(trainImages, trainTruth, testImages, testTruths, checkpointFolder)
 	# ~ something = thenet(testImages[0])
 
 	print("Saving model...")
-	theModel.save("./tmp/saved-model.h5")
+	theModel.save(savedModelFolder + "saved-model.h5")
 	print("Done!")
 	print("Calculating scores...")
 	scores = theModel.evaluate(testImages, testTruths)
@@ -124,7 +164,7 @@ def main(args):
 	print(str(theHistory.history))
 	print("%s: %.2f%%" % (theModel.metrics_names[1], scores[1]*100))
 	
-	performEvaluation(theHistory)
+	performEvaluation(theHistory, tmpFolder)
 	
 	randNum = random.randint(0, len(testImages) - 1)
 	modelOut = theModel.predict(testImages)
@@ -135,14 +175,15 @@ def main(args):
 	print("modelout shape: " + str(modelOut.shape) )
 	print("modelout[0] shape: " + str(modelOut[0].shape))
 	
-	os.system("mkdir -p ./tmp/predictions")
 	
 	for i in range(len(modelOut)):
 		# ~ imshow(modelOut[i] / 255)
 		# ~ imshow(modelOut[i])
 		# ~ plt.savefig("./tmp/predictions/fig[" + str(i) + "]A.png")
-		# ~ imsave("./tmp/predictions/fig[" + str(i) + "].png", modelOut[i])
-		imsave("./tmp/predictions/fig[" + str(i) + "].png", modelOut[i] / 255) # WORKING
+		# ~ imsave("./tmp/predictions/fig[" + str(i) + "].png", modelOut[i])####################################################
+		imsave(predictionsFolder + "fig[" + str(i) + "]255.png", modelOut[i] / 255) # WORKING
+		imsave(predictionsFolder + "fig[" + str(i) + "]squeeze.png", np.squeeze(modelOut[i]))
+		imsave(predictionsFolder + "fig[" + str(i) + "]raw.png", modelOut[i])
 		# ~ imsave("./tmp/predictions/fig[" + str(i) + "].png", modelOut[i] / 255)
 		# ~ plt.savefig("./tmp/predictions/fig[" + str(i) + "].png")
 		# ~ plt.show()
@@ -155,7 +196,7 @@ def main(args):
 	return 0
 
 
-def performEvaluation(history):
+def performEvaluation(history, tmpFolder):
 	accuracy = history.history["acc"]
 	val_accuracy = history.history["val_acc"]
 	loss = history.history["loss"]
@@ -165,7 +206,7 @@ def performEvaluation(history):
 	plt.plot(epochs, val_accuracy, "^", label="Validation accuracy")
 	plt.title("Training and validation accuracy")
 	plt.legend()
-	plt.savefig("trainvalacc" + ".png")
+	plt.savefig(tmpFolder + "trainvalacc.png")
 	plt.clf()
 	# ~ plt.figure()
 	# ~ plt.plot(epochs, loss, "bo", label="Training loss")
@@ -176,7 +217,7 @@ def performEvaluation(history):
 	# ~ plt.show()
 
 
-def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
+def trainUnet(trainImages, trainTruth, testImages, testTruths, checkpointFolder):
 	
 	print("shape of trainImages: " + str(trainImages.shape))
 	# ~ print("pauseing!")
@@ -188,18 +229,18 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, tmpFolder):
 	
 	# ~ earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 2)
 	checkpointer = callbacks.ModelCheckpoint(
-			filepath=tmpFolder + "myCheckpoint",
-			monitor="val_loss",
-			save_best_only=True,
-			mode="min")
+			filepath = checkpointFolder,
+			monitor = "val_loss",
+			save_best_only = True,
+			mode = "min")
 	# ~ callbacks_list = [earlyStopper, checkpointer]
 	callbacks_list = [checkpointer]
 	
 	myHistory = standardUnetLol.fit(
 			x = trainImages,
 			y = trainTruth,
-			epochs = 5,
-			batch_size = 4, ####?what shouldst it be? for making sure all cores/gpu cores full
+			epochs = GLOBAL_EPOCHS,
+			batch_size = GLOBAL_BATCH_SIZE, ####?what shouldst it be? for making sure all cores/gpu cores full
 			callbacks=callbacks_list,
 			validation_split = 0.33333)
 	
