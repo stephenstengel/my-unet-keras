@@ -53,22 +53,16 @@ GLOBAL_BATCH_SIZE = 4 #just needs to be big enough to fill memory
 IS_GLOBAL_PRINTING_ON = False
 # ~ IS_GLOBAL_PRINTING_ON = True
 
+HELPFILE_PATH = "helpfile"
+
 print("Done!")
 
 def main(args):
 	print("Hi!")
 	
-	if len(args) < 4:
-		print("bad input");
-		sys.exit(-1)
-	else:
-		NUM_SQUARES = int(sys.argv[1])
-		HACK_SIZE = int(sys.argv[2])
-		GLOBAL_EPOCHS = int(sys.argv[3])
-		GLOBAL_BATCH_SIZE = int(sys.argv[4])
-		if len(args) >= 5:
-			if str(sys.argv[5]) == "print":
-				IS_GLOBAL_PRINTING_ON = True
+	checkArgs(args)
+	# ~ print("ARGS GOOD HALTING TEST!")
+	# ~ sys.exit(0)
 	
 	print("Creating folders to store results...")
 	sq = str(NUM_SQUARES)
@@ -194,6 +188,53 @@ def main(args):
 	# ~ model = keras.models.load_model("./tmp/saved-model.h5")
 	
 	return 0
+
+
+def checkArgs(args):
+	if len(args) >= 1:
+		for a in args:
+			if str(a) == "help" \
+					or str(a).lower() == "-help" \
+					or str(a).lower() == "--help" \
+					or str(a).lower() == "--h":
+				with open(HELPFILE_PATH, "r") as helpfile:
+					for line in helpfile:
+						print(line, end = "")
+				sys.exit(0)
+
+	if len(args) < 5:
+			print("bad input");
+			sys.exit(-1)
+	else:
+		global NUM_SQUARES
+		NUM_SQUARES = int(sys.argv[1])
+		global HACK_SIZE
+		HACK_SIZE = int(sys.argv[2])
+		global GLOBAL_EPOCHS
+		GLOBAL_EPOCHS = int(sys.argv[3])
+		global GLOBAL_BATCH_SIZE
+		GLOBAL_BATCH_SIZE = int(sys.argv[4])
+		if len(args) >= 6:
+			if str(sys.argv[5]) == "print":
+				global IS_GLOBAL_PRINTING_ON 
+				IS_GLOBAL_PRINTING_ON = True
+				print("Printing of debugging messages is enabled.")
+
+	if NUM_SQUARES < 100:
+		print("100 squares is really the bare minimum to get any meaningful result.")
+		sys.exit(-1)
+	if HACK_SIZE not in [64, 128, 256, 512]:
+		print("Square size must be 64, 128, 256, or 512." \
+				+ " 128 is recommended for training. 64 for testing")
+		sys.exit(-2)
+	if GLOBAL_EPOCHS < 1:
+		print("Yeah no.")
+		print("You need at least one epoch, silly!")
+		sys.exit(-3)
+	if GLOBAL_BATCH_SIZE < 1 or GLOBAL_BATCH_SIZE > NUM_SQUARES:
+		print("Global batch size should be between 1 and the number" \
+				+ " of training squares. Pick a better number.")
+		sys.exit(-5)
 
 
 def performEvaluation(history, tmpFolder):
