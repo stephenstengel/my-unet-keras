@@ -43,6 +43,8 @@ HACK_SIZE = 64 #64 is reasonably good for prototyping.
 # ~ HACK_SIZE = 512
 GLOBAL_HACK_height, GLOBAL_HACK_width = HACK_SIZE, HACK_SIZE
 
+IMAGE_CHANNELS = 3 #This might change later for different datasets. idk.
+
 GLOBAL_EPOCHS = 15
 #GLOBAL_EPOCHS = 50 #Clear results start at 1000, 64, 50
 
@@ -289,7 +291,8 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, checkpointFolder)
 	
 	
 
-def createStandardUnet(input_size=(GLOBAL_HACK_height, GLOBAL_HACK_width, 3)):
+def createStandardUnet():
+	input_size=(GLOBAL_HACK_height, GLOBAL_HACK_width, IMAGE_CHANNELS)
 	inputs = Input(input_size)
 	conv5, conv4, conv3, conv2, conv1 = encode(inputs)
 	conv10 = decode(conv5, conv4, conv3, conv2, conv1)
@@ -301,52 +304,50 @@ def createStandardUnet(input_size=(GLOBAL_HACK_height, GLOBAL_HACK_width, 3)):
 	return model
 
 def encode(inputs):
-	conv1 = Conv2D(64, 3, activation = 'relu', padding="same")(inputs)
-	conv1 = Conv2D(64, 3, activation = 'relu', padding="same")(conv1)
-	pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-	conv2 = Conv2D(128, 3, activation = 'relu', padding="same")(pool1)
-	conv2 = Conv2D(128, 3, activation = 'relu', padding="same")(conv2)
-	pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-	conv3 = Conv2D(256, 3, activation = 'relu', padding="same")(pool2)
-	conv3 = Conv2D(256, 3, activation = 'relu', padding="same")(conv3)
-	pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
-	conv4 = Conv2D(512, 3, activation = 'relu', padding="same")(pool3)
-	conv4 = Conv2D(512, 3, activation = 'relu', padding="same")(conv4)
-	pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
-	conv5 = Conv2D(1024, 3, activation = 'relu', padding="same")(pool4)
-	conv5 = Conv2D(1024, 3, activation = 'relu', padding="same")(conv5)
+	#next decrease feature pool size
+	#next add kernel initializer
+	#next add dropout
+	conv1 = Conv2D(64, (3, 3), activation = 'relu', padding = "same")(inputs)
+	conv1 = Conv2D(64, (3, 3), activation = 'relu', padding = "same")(conv1)
+	pool1 = MaxPooling2D((2, 2))(conv1)
+	conv2 = Conv2D(128, (3, 3), activation = 'relu', padding = "same")(pool1)
+	conv2 = Conv2D(128, (3, 3), activation = 'relu', padding = "same")(conv2)
+	pool2 = MaxPooling2D((2, 2))(conv2)
+	conv3 = Conv2D(256, (3, 3), activation = 'relu', padding = "same")(pool2)
+	conv3 = Conv2D(256, (3, 3), activation = 'relu', padding = "same")(conv3)
+	pool3 = MaxPooling2D((2, 2))(conv3)
+	conv4 = Conv2D(512, (3, 3), activation = 'relu', padding = "same")(pool3)
+	conv4 = Conv2D(512, (3, 3), activation = 'relu', padding = "same")(conv4)
+	pool4 = MaxPooling2D((2, 2))(conv4)
+	conv5 = Conv2D(1024, (3, 3), activation = 'relu', padding = "same")(pool4)
+	conv5 = Conv2D(1024, (3, 3), activation = 'relu', padding = "same")(conv5)
 
 	return conv5, conv4, conv3, conv2, conv1
 
-#I took out the crops.
+#Concatenate used to have axis = 3. testing without specifying...
 def decode(conv5, conv4, conv3, conv2, conv1):
-	up6 = Conv2DTranspose(512, 2, strides=2, padding="same")(conv5)
-	concat6 = Concatenate(axis=3)([conv4,up6])
-	conv6 = Conv2D(512, 3, activation = 'relu', padding="same")(concat6)
-	conv6 = Conv2D(512, 3, activation = 'relu', padding="same")(conv6)
+	up6 = Conv2DTranspose(512, (2, 2), strides = (2, 2), padding = "same")(conv5)
+	concat6 = Concatenate()([conv4,up6])
+	conv6 = Conv2D(512, (3, 3), activation = 'relu', padding = "same")(concat6)
+	conv6 = Conv2D(512, (3, 3), activation = 'relu', padding = "same")(conv6)
 	
-	up7 = Conv2DTranspose(256, 2, strides=2, padding="same")(conv6)
-	concat7 = Concatenate(axis=3)([conv3,up7])
-	conv7 = Conv2D(256, 3, activation = 'relu', padding="same")(concat7)
-	conv7 = Conv2D(256, 3, activation = 'relu', padding="same")(conv7)
+	up7 = Conv2DTranspose(256, (2, 2), strides = (2, 2), padding = "same")(conv6)
+	concat7 = Concatenate()([conv3,up7])
+	conv7 = Conv2D(256, (3, 3), activation = 'relu', padding = "same")(concat7)
+	conv7 = Conv2D(256, (3, 3), activation = 'relu', padding = "same")(conv7)
 	
-	up8 = Conv2DTranspose(128, 2, strides=2, padding="same")(conv7)
-	concat8 = Concatenate(axis=3)([conv2,up8])
-	conv8 = Conv2D(128, 3, activation = 'relu', padding="same")(concat8)
-	conv8 = Conv2D(128, 3, activation = 'relu', padding="same")(conv8)
+	up8 = Conv2DTranspose(128, (2, 2), strides = (2, 2), padding = "same")(conv7)
+	concat8 = Concatenate()([conv2,up8])
+	conv8 = Conv2D(128, (3, 3), activation = 'relu', padding = "same")(concat8)
+	conv8 = Conv2D(128, (3, 3), activation = 'relu', padding = "same")(conv8)
 	
-	up9 = Conv2DTranspose(64, 2, strides=2, padding="same")(conv8)
-	concat9 = Concatenate(axis=3)([conv1,up9])
-	conv9 = Conv2D(64, 3, activation = 'relu', padding="same")(concat9)
-	conv9 = Conv2D(64, 3, activation = 'relu', padding="same")(conv9)
-	# ~ conv10 = Conv2D(2, 1, padding="same")(conv9)
-	# ~ conv10 = Conv2D(1, 1, padding="same")(conv9)
-	# ~ conv10 = Conv2D(1, (1, 1), padding="same")(conv9)
-	conv10 = Conv2D(1, (1, 1), padding="same", activation="sigmoid")(conv9)
-	# ~ conv10 = Softmax(axis=-1)(conv10)
+	up9 = Conv2DTranspose(64, (2, 2), strides = (2, 2), padding = "same")(conv8)
+	concat9 = Concatenate()([conv1,up9])
+	conv9 = Conv2D(64, (3, 3), activation = 'relu', padding = "same")(concat9)
+	conv9 = Conv2D(64, (3, 3), activation = 'relu', padding = "same")(conv9)
 	
-	#add something to view image here?
-
+	conv10 = Conv2D(1, (1, 1), padding = "same", activation="sigmoid")(conv9)
+	
 	return conv10
 
 
