@@ -274,8 +274,8 @@ def trainUnet(trainImages, trainTruth, testImages, testTruths, checkpointFolder)
 			x = trainImages,
 			y = trainTruth,
 			epochs = GLOBAL_EPOCHS,
-			batch_size = GLOBAL_BATCH_SIZE, ####?what shouldst it be? for making sure all cores/gpu cores full
-			callbacks=callbacks_list,
+			batch_size = GLOBAL_BATCH_SIZE,
+			callbacks = callbacks_list,
 			validation_split = 0.33333)
 	
 	return standardUnetLol, myHistory
@@ -286,10 +286,11 @@ def createStandardUnet():
 	input_size=(GLOBAL_HACK_height, GLOBAL_HACK_width, IMAGE_CHANNELS)
 	inputs = Input(input_size)
 	conv5, conv4, conv3, conv2, conv1 = encode(inputs)
-	conv10 = decode(conv5, conv4, conv3, conv2, conv1)
-	model = Model(inputs, conv10)
+	output = decode(conv5, conv4, conv3, conv2, conv1)
+	model = Model(inputs, output)
 	
-	model.compile(optimizer = Adam(learning_rate=1e-4), loss='categorical_crossentropy',  metrics=["acc"])
+	# ~ model.compile(optimizer = Adam(learning_rate=1e-4), loss='categorical_crossentropy',  metrics=["acc"])
+	model.compile(optimizer = "adam", loss = "binary_crossentropy",  metrics = ["acc"])
 	
 	return model
 
