@@ -65,6 +65,7 @@ IS_GLOBAL_PRINTING_ON = False
 # ~ IS_GLOBAL_PRINTING_ON = True
 
 HELPFILE_PATH = "helpfile"
+OUT_TEXT_PATH = "accuracies-if-error-happens-lol"
 
 print("Done!")
 
@@ -89,6 +90,8 @@ def main(args):
 	os.system("mkdir -p " + checkpointFolder)
 	os.system("mkdir -p " + savedModelFolder)
 	os.system("mkdir -p " + predictionsFolder)
+	global OUT_TEXT_PATH
+	OUT_TEXT_PATH = tmpFolder + "accuracy-jaccard-dice.txt"
 	print("Done!")
 	
 	print("Creating copy of source code...")
@@ -193,7 +196,17 @@ def main(args):
 		imsave(predictionsFolder + "fig[" + str(i) + "]testimg.png", testImages[i])
 		imsave(predictionsFolder + "fig[" + str(i) + "]truthim.png", testTruths[i])
 		
-	
+	#Testing the jaccard and dice functions
+	with open(OUT_TEXT_PATH, "w") as outFile:
+		for i in range(len(binarizedOut)):
+			thisString = str(i) \
+					+ "\tjaccard: " \
+					+ str(jaccardIndex(testTruths[i], binarizedOut[i]))\
+					+ "dice: " \
+					+ str(diceIndex(testTruths[i]), binarizedOut[i] \
+					+ "\n")
+			print(thisString)
+			outFile.write(thisString)
 	
 	return 0
 
