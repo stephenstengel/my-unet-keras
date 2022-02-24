@@ -82,6 +82,10 @@ def main(args):
 	os.system("mkdir -p " + predictionsFolder)
 	print("Done!")
 	
+	print("Creating copy of source code...")
+	os.system("cp my-unet.py " + tmpFolder + "my-unet.py") # how get filename?
+	print("Done!")
+	
 	print("Creating train and test sets...")
 	trainImages, trainTruth, testImages, testTruths = createTrainAndTestSets()
 	print("Done!")
