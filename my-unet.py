@@ -203,6 +203,9 @@ def checkArgs(args):
 		NUM_SQUARES = int(sys.argv[1])
 		global HACK_SIZE
 		HACK_SIZE = int(sys.argv[2])
+		global GLOBAL_HACK_height
+		global GLOBAL_HACK_width
+		GLOBAL_HACK_height, GLOBAL_HACK_width = HACK_SIZE, HACK_SIZE
 		global GLOBAL_EPOCHS
 		GLOBAL_EPOCHS = int(sys.argv[3])
 		global GLOBAL_BATCH_SIZE
