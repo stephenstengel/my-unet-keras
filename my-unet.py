@@ -52,6 +52,8 @@ GLOBAL_BATCH_SIZE = 4 #just needs to be big enough to fill memory
 #64hack, 5 epoch, 16batch nearly fills 8gb on laptop. Half of 16 on other laptop.
 #Making batch too high seems to cause problems. 32 caused a NaN error when trying to write the output images on laptop1.
 
+GLOBAL_INITIAL_FILTERS = 16 
+
 IS_GLOBAL_PRINTING_ON = False
 # ~ IS_GLOBAL_PRINTING_ON = True
 
@@ -303,59 +305,63 @@ def createStandardUnet():
 
 #dropout increase in middle to reduce runtime in addition to dropping out stuff.
 def encode(inputs):
-	conv1 = Conv2D(16, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(inputs)
-	conv1 = Dropout(0.1)(conv1)
-	conv1 = Conv2D(16, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(conv1)
-	pool1 = MaxPooling2D((2, 2))(conv1)
-	
-	conv2 = Conv2D(32, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(pool1)
-	conv2 = Dropout(0.1)(conv2)
-	conv2 = Conv2D(32, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(conv2)
-	pool2 = MaxPooling2D((2, 2))(conv2)
-	
-	conv3 = Conv2D(64, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(pool2)
-	conv3 = Dropout(0.2)(conv3)
-	conv3 = Conv2D(64, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(conv3)
-	pool3 = MaxPooling2D((2, 2))(conv3)
-	
-	conv4 = Conv2D(128, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(pool3)
-	conv4 = Dropout(0.2)(conv4)
-	conv4 = Conv2D(128, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(conv4)
-	pool4 = MaxPooling2D((2, 2))(conv4)
-	
-	conv5 = Conv2D(256, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(pool4)
-	conv5 = Dropout(0.3)(conv5)
-	conv5 = Conv2D(256, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(conv5)
+	sfilter = GLOBAL_INITIAL_FILTERS
+	#something in the new way is making bad outputs.
+	# ~ conv1 = Conv2D(16, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(inputs)
+	conv1 = Conv2D(sfilter, (3, 3), activation = 'relu', padding = "same")(inputs)
+	# ~ conv1 = Dropout(0.1)(conv1)
+	conv1 = Conv2D(sfilter, (3, 3), activation = 'relu', padding = "same")(conv1)
+	pool1 = MaxPooling2D((2, 2))(conv1)             
+													
+	conv2 = Conv2D(sfilter * 2, (3, 3), activation = 'relu', padding = "same")(pool1)
+	# ~ conv2 = Dropout(0.1)(conv2)                     
+	conv2 = Conv2D(sfilter * 2, (3, 3), activation = 'relu', padding = "same")(conv2)
+	pool2 = MaxPooling2D((2, 2))(conv2)             
+													
+	conv3 = Conv2D(sfilter * 4, (3, 3), activation = 'relu', padding = "same")(pool2)
+	# ~ conv3 = Dropout(0.2)(conv3)                     
+	conv3 = Conv2D(sfilter * 4, (3, 3), activation = 'relu', padding = "same")(conv3)
+	pool3 = MaxPooling2D((2, 2))(conv3)             
+													
+	conv4 = Conv2D(sfilter * 8, (3, 3), activation = 'relu', padding = "same")(pool3)
+	# ~ conv4 = Dropout(0.2)(conv4)                     
+	conv4 = Conv2D(sfilter * 8, (3, 3), activation = 'relu', padding = "same")(conv4)
+	pool4 = MaxPooling2D((2, 2))(conv4)             
+													
+	conv5 = Conv2D(sfilter * 16, (3, 3), activation = 'relu', padding = "same")(pool4)
+	# ~ conv5 = Dropout(0.3)(conv5)                     
+	conv5 = Conv2D(sfilter * 16, (3, 3), activation = 'relu', padding = "same")(conv5)
 
 	return conv5, conv4, conv3, conv2, conv1
 
 #Concatenate used to have axis = 3. testing without specifying...
 def decode(conv5, conv4, conv3, conv2, conv1):
-	up6 = Conv2DTranspose(128, (2, 2), strides = (2, 2), padding = "same")(conv5)
+	sfilter = GLOBAL_INITIAL_FILTERS
+	up6 = Conv2DTranspose(sfilter * 8, (2, 2), strides = (2, 2), padding = "same")(conv5)
 	concat6 = Concatenate()([conv4,up6])
-	conv6 = Conv2D(128, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(concat6)
-	conv6 = Dropout(0.2)(conv6)
-	conv6 = Conv2D(128, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(conv6)
+	conv6 = Conv2D(sfilter * 8, (3, 3), activation = 'relu', padding = "same")(concat6)
+	# ~ conv6 = Dropout(0.2)(conv6)                     
+	conv6 = Conv2D(sfilter * 8, (3, 3), activation = 'relu', padding = "same")(conv6)
 	
-	up7 = Conv2DTranspose(64, (2, 2), strides = (2, 2), padding = "same")(conv6)
+	up7 = Conv2DTranspose(sfilter * 4, (2, 2), strides = (2, 2), padding = "same")(conv6)
 	concat7 = Concatenate()([conv3,up7])
-	conv7 = Conv2D(64, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(concat7)
-	conv7 = Dropout(0.2)(conv7)
-	conv7 = Conv2D(64, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(conv7)
+	conv7 = Conv2D(sfilter * 4, (3, 3), activation = 'relu', padding = "same")(concat7)
+	# ~ conv7 = Dropout(0.2)(conv7)                    
+	conv7 = Conv2D(sfilter * 4, (3, 3), activation = 'relu', padding = "same")(conv7)
 	
-	up8 = Conv2DTranspose(32, (2, 2), strides = (2, 2), padding = "same")(conv7)
+	up8 = Conv2DTranspose(sfilter * 2, (2, 2), strides = (2, 2), padding = "same")(conv7)
 	concat8 = Concatenate()([conv2,up8])
-	conv8 = Conv2D(32, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(concat8)
-	conv8 = Dropout(0.1)(conv8)
-	conv8 = Conv2D(32, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(conv8)
+	conv8 = Conv2D(sfilter * 2, (3, 3), activation = 'relu', padding = "same")(concat8)
+	# ~ conv8 = Dropout(0.1)(conv8)                    
+	conv8 = Conv2D(sfilter * 2, (3, 3), activation = 'relu', padding = "same")(conv8)
 	
 	up9 = Conv2DTranspose(16, (2, 2), strides = (2, 2), padding = "same")(conv8)
 	concat9 = Concatenate()([conv1,up9])
-	conv9 = Conv2D(16, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(concat9)
-	conv9 = Dropout(0.1)(conv9)
-	conv9 = Conv2D(16, (3, 3), activation = 'relu', kernel_initializer = "he_normal", padding = "same")(conv9)
+	conv9 = Conv2D(sfilter, (3, 3), activation = 'relu', padding = "same")(concat9)
+	# ~ conv9 = Dropout(0.1)(conv9)                    
+	conv9 = Conv2D(sfilter, (3, 3), activation = 'relu', padding = "same")(conv9)
 	
-	conv10 = Conv2D(1, (1, 1), padding = "same", activation="sigmoid")(conv9)
+	conv10 = Conv2D(1, (1, 1), padding = "same", activation = "sigmoid")(conv9)
 	
 	return conv10
 
