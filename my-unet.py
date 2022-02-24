@@ -19,6 +19,8 @@ import numpy as np
 import random
 from PIL import Image
 
+from tqdm import tqdm
+
 from skimage.io import imread, imshow, imsave
 from skimage.transform import resize
 from matplotlib import pyplot as plt
@@ -58,8 +60,8 @@ GLOBAL_BATCH_SIZE = 4 #just needs to be big enough to fill memory
 
 GLOBAL_INITIAL_FILTERS = 16
 
-GLOBAL_SMOOTH_JACCARD = 1.0
-GLOBAL_SMOOTH_DICE = 1.0
+GLOBAL_SMOOTH_JACCARD = 1
+GLOBAL_SMOOTH_DICE = 1
 
 IS_GLOBAL_PRINTING_ON = False
 # ~ IS_GLOBAL_PRINTING_ON = True
@@ -187,26 +189,30 @@ def main(args):
 	# ~ print("modelout shape: " + str(modelOut.shape) )
 	# ~ print("modelout[0] shape: " + str(modelOut[0].shape))
 	
-	binarizedOut = (modelOut > 0.5).astype(np.uint8) * 255
+	binarizedOut = ((modelOut > 0.5).astype(np.uint8) * 255).astype(np.uint8) #######test this thing more
+	# ~ binarizedOut = (modelOut > 0.5).astype(np.uint8) * 255
 	
-	for i in range(len(modelOut)):
+	print("Saving figures...")
+	for i in tqdm(range(len(modelOut))):
 		# ~ imsave(predictionsFolder + "fig[" + str(i) + "]squeeze.png", np.squeeze(modelOut[i]))
 		imsave(predictionsFolder + "fig[" + str(i) + "]premask.png", modelOut[i])
 		imsave(predictionsFolder + "fig[" + str(i) + "]predict.png", binarizedOut[i])
 		imsave(predictionsFolder + "fig[" + str(i) + "]testimg.png", testImages[i])
 		imsave(predictionsFolder + "fig[" + str(i) + "]truthim.png", testTruths[i])
-		
+	print("Done!")
+
+	testTruthsUInt = testTruths.astype(np.uint8)
+	
 	#Testing the jaccard and dice functions
+	print("Calculating jaccard and dice...")
 	with open(OUT_TEXT_PATH, "w") as outFile:
-		for i in range(len(binarizedOut)):
-			thisString = str(i) \
-					+ "\tjaccard: " \
-					+ str(jaccardIndex(testTruths[i], binarizedOut[i]))\
-					+ "dice: " \
-					+ str(diceIndex(testTruths[i]), binarizedOut[i] \
-					+ "\n")
-			print(thisString)
+		for i in tqdm(range(len(binarizedOut))):
+			jac = jaccardIndex(testTruthsUInt[i], binarizedOut[i])
+			dice = diceIndex(testTruthsUInt[i], binarizedOut[i])
+			thisString = str(i) + "\tjaccard: " + str(jac) + "\tdice: " + str(dice) + "\n"
+			# ~ print(thisString)
 			outFile.write(thisString)
+	print("Done!")
 	
 	return 0
 
@@ -425,8 +431,9 @@ def createTrainAndTestSets():
 def getImageAndTruth(originalFilenames, truthFilenames):
 	outOriginals, outTruths = [], []
 	
-	for i in range(len(originalFilenames)):
-		print("Importing " + originalFilenames[i] + "...")
+	print("Importing " + originalFilenames[0] + " and friends...")
+	for i in tqdm(range(len(originalFilenames))):
+		# ~ print("\rImporting " + originalFilenames[i] + "...", end = "")
 		myOriginal = imread(originalFilenames[i])[:, :, :3] #this is pretty arcane. research later
 		myTruth = imread(truthFilenames[i])[:, :, :3] #this is pretty arcane. research later
 		
@@ -600,7 +607,7 @@ def diceIndex(truth, prediction):
 	truthFlat = backend.flatten(truth)
 	numberSamePixels = backend.sum(predictionFlat * truthFlat)
 	
-	return (2.0 * numberSamePixels + smooth) \
+	return (2 * numberSamePixels + smooth) \
 			/ (backend.sum(predictionFlat) + backend.sum(truthFlat) + smooth)
 
 #Loss function for use in training
