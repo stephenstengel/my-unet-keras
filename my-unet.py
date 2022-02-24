@@ -32,6 +32,7 @@ from keras.layers import Conv2D, MaxPool2D, UpSampling2D, merge, Input, Dropout,
 # ~ from tensorflow.keras.layers import SoftMax
 from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
+from keras import backend
 
 
 np.random.seed(55555)
@@ -546,6 +547,50 @@ def appendBMP(inputList):
 	
 def prependPath(myPath, nameList):
 	return [myPath + name for name in nameList]
+
+
+#I'm copying the code for jaccard similarity and dice from this MIT licenced source.
+#https://github.com/masyagin1998/robin
+#jaccard is size intersection of the sets / size union of the sets
+#Also, I'm going to try the smoothing values suggested in robin and here:
+#https://gist.github.com/wassname/f1452b748efcbeb4cb9b1d059dce6f96
+#They also suggest abs()
+def jaccardIndex(truth, prediction):
+	predictionFlat = backend.flatten(prediction)
+	truthFlat = backend.flatten(truth)
+	# ~ intersectionImg = predictionFlat * truthFlat
+	numberPixelsSame = backend.sum(predictionFlat * truthFlat)
+
+	return (numberPixelsSame + 1.0) / \
+			( \
+			(backend.sum(predictionFlat) + backend.sum(truthFlat) - numberPixelsSame + 1.0) \
+			)
+	# ~ return (numberPixelsSame) / \
+			# ~ ( \
+			# ~ (backend.sum(predictionFlat) + backend.sum(truthFlat) - numberPixelsSame) \
+			# ~ )
+
+#loss function for use in training.
+def jaccardLoss(truth, prediction):
+	return 1 - jaccardIndex(truth, prediction)
+
+
+#input must be binarized images consisting of values for pixels of either 1 or 0.
+def diceIndex(truth, prediction):
+	predictionFlat = backend.flatten(prediction)
+	truthFlat = backend.flatten(truth)
+	numberSamePixels = backend.sum(predictionFlat * truthFlat)
+	
+	return (2.0 * numberSamePixels + 1.0) \
+			/ (backend.sum(predictionFlat) + backend.sum(truthFlat) + 1.0)
+	# ~ return (2.0 * numberSamePixels) \
+			# ~ / (backend.sum(predictionFlat) + backend.sum(truthFlat))
+
+#Loss function for use in training
+def diceLoss(truth, prediction):
+	return 1 - diceIndex(truth, prediction)
+	
+
 
 if __name__ == '__main__':
 	import sys
