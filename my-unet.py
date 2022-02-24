@@ -34,6 +34,9 @@ from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 
 
+np.random.seed(55555)
+random.seed(55555)
+
 NUM_SQUARES = 100 #Reduced number of square inputs for training. 100 seems to be min for good results.
 NUM_SQUARES_TEST = int(NUM_SQUARES // 1.5)
 
@@ -152,7 +155,7 @@ def main(args):
 	print("There are " + str(len(trainImages)) + " training images.")
 	print("There are " + str(len(testImages)) + " testing images.")
 
-	theModel, theHistory = trainUnet(trainImages, trainTruth, testImages, testTruths, checkpointFolder)
+	theModel, theHistory = trainUnet(trainImages, trainTruth, checkpointFolder)
 	# ~ something = thenet(testImages[0])
 
 	print("Saving model...")
@@ -174,17 +177,19 @@ def main(args):
 	# ~ print("output as string: " + str(modelOut))
 	
 	# ~ modelOut = np.asarray(modelOut)
-	print("modelout shape: " + str(modelOut.shape) )
-	print("modelout[0] shape: " + str(modelOut[0].shape))
+	# ~ print("modelout shape: " + str(modelOut.shape) )
+	# ~ print("modelout[0] shape: " + str(modelOut[0].shape))
 	
+	binarizedOut = (modelOut > 0.5).astype(np.uint8) * 255
 	
 	for i in range(len(modelOut)):
-		imsave(predictionsFolder + "fig[" + str(i) + "]255.png", modelOut[i] / 255) # WORKING
-		imsave(predictionsFolder + "fig[" + str(i) + "]squeeze.png", np.squeeze(modelOut[i]))
-		imsave(predictionsFolder + "fig[" + str(i) + "]raw.png", modelOut[i])
-		# ~ plt.show()
+		# ~ imsave(predictionsFolder + "fig[" + str(i) + "]squeeze.png", np.squeeze(modelOut[i]))
+		imsave(predictionsFolder + "fig[" + str(i) + "]premask.png", modelOut[i])
+		imsave(predictionsFolder + "fig[" + str(i) + "]predict.png", binarizedOut[i])
+		imsave(predictionsFolder + "fig[" + str(i) + "]testimg.png", testImages[i])
+		imsave(predictionsFolder + "fig[" + str(i) + "]truthim.png", testTruths[i])
+		
 	
-	# ~ model = keras.models.load_model("./tmp/saved-model.h5")
 	
 	return 0
 
@@ -260,7 +265,7 @@ def performEvaluation(history, tmpFolder):
 	# ~ plt.show()
 
 
-def trainUnet(trainImages, trainTruth, testImages, testTruths, checkpointFolder):
+def trainUnet(trainImages, trainTruth, checkpointFolder):
 	
 	print("shape of trainImages: " + str(trainImages.shape))
 	# ~ print("pauseing!")
