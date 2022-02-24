@@ -56,7 +56,10 @@ GLOBAL_BATCH_SIZE = 4 #just needs to be big enough to fill memory
 #64hack, 5 epoch, 16batch nearly fills 8gb on laptop. Half of 16 on other laptop.
 #Making batch too high seems to cause problems. 32 caused a NaN error when trying to write the output images on laptop1.
 
-GLOBAL_INITIAL_FILTERS = 16 
+GLOBAL_INITIAL_FILTERS = 16
+
+GLOBAL_SMOOTH_JACCARD = 1.0
+GLOBAL_SMOOTH_DICE = 1.0
 
 IS_GLOBAL_PRINTING_ON = False
 # ~ IS_GLOBAL_PRINTING_ON = True
@@ -556,14 +559,15 @@ def prependPath(myPath, nameList):
 #https://gist.github.com/wassname/f1452b748efcbeb4cb9b1d059dce6f96
 #They also suggest abs()
 def jaccardIndex(truth, prediction):
+	smooth = GLOBAL_SMOOTH_JACCARD
 	predictionFlat = backend.flatten(prediction)
 	truthFlat = backend.flatten(truth)
 	# ~ intersectionImg = predictionFlat * truthFlat
 	numberPixelsSame = backend.sum(predictionFlat * truthFlat)
 
-	return (numberPixelsSame + 1.0) / \
+	return (numberPixelsSame + smooth) / \
 			( \
-			(backend.sum(predictionFlat) + backend.sum(truthFlat) - numberPixelsSame + 1.0) \
+			(backend.sum(predictionFlat) + backend.sum(truthFlat) - numberPixelsSame + smooth) \
 			)
 	# ~ return (numberPixelsSame) / \
 			# ~ ( \
@@ -572,23 +576,24 @@ def jaccardIndex(truth, prediction):
 
 #loss function for use in training.
 def jaccardLoss(truth, prediction):
-	return 1 - jaccardIndex(truth, prediction)
+	smooth = GLOBAL_SMOOTH_JACCARD
+	return smooth - jaccardIndex(truth, prediction)
 
 
 #input must be binarized images consisting of values for pixels of either 1 or 0.
 def diceIndex(truth, prediction):
+	smooth = GLOBAL_SMOOTH_DICE
 	predictionFlat = backend.flatten(prediction)
 	truthFlat = backend.flatten(truth)
 	numberSamePixels = backend.sum(predictionFlat * truthFlat)
 	
-	return (2.0 * numberSamePixels + 1.0) \
-			/ (backend.sum(predictionFlat) + backend.sum(truthFlat) + 1.0)
-	# ~ return (2.0 * numberSamePixels) \
-			# ~ / (backend.sum(predictionFlat) + backend.sum(truthFlat))
+	return (2.0 * numberSamePixels + smooth) \
+			/ (backend.sum(predictionFlat) + backend.sum(truthFlat) + smooth)
 
 #Loss function for use in training
 def diceLoss(truth, prediction):
-	return 1 - diceIndex(truth, prediction)
+	smooth = GLOBAL_SMOOTH_DICE
+	return smooth - diceIndex(truth, prediction)
 	
 
 
