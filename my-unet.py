@@ -40,8 +40,7 @@ from keras import backend
 np.random.seed(55555)
 random.seed(55555)
 
-NUM_SQUARES = 100 #Reduced number of square inputs for training. 100 seems to be min for good results.
-NUM_SQUARES_TEST = int(NUM_SQUARES // 1.5)
+NUM_SQUARES = 100 #Reduced number of square inputs for training. 100 seems to be min for ok results.
 
 HACK_SIZE = 64 #64 is reasonably good for prototyping.
 #HACK_SIZE = 128
@@ -52,7 +51,7 @@ GLOBAL_HACK_height, GLOBAL_HACK_width = HACK_SIZE, HACK_SIZE
 IMAGE_CHANNELS = 3 #This might change later for different datasets. idk.
 
 GLOBAL_EPOCHS = 15
-#GLOBAL_EPOCHS = 50 #Clear results start at 1000, 64, 50
+#GLOBAL_EPOCHS = 50 #Clear results start at 1000, 64, 15
 
 GLOBAL_BATCH_SIZE = 4 #just needs to be big enough to fill memory
 #64hack, 5 epoch, 16batch nearly fills 8gb on laptop. Half of 16 on other laptop.
@@ -105,7 +104,8 @@ def main(args):
 	print("Done!")
 	
 	
-	saveExperimentImages(trainImages, trainTruth, testImages, testTruths, trainingFolder)
+	#Images not currently called from disk. Commenting for speed testing.
+	# ~ saveExperimentImages(trainImages, trainTruth, testImages, testTruths, trainingFolder)
 
 	if IS_GLOBAL_PRINTING_ON:
 		print("shape of trainImages: " + str(np.shape(trainImages)))
@@ -139,17 +139,25 @@ def main(args):
 	#This block reduces the input for testing.
 	# ~ numRange = np.arange(0, len(trainImages))
 	rng = np.random.default_rng(12345)
-	pickIndexes = rng.integers(low = 0, high = len(trainImages), size = NUM_SQUARES)
-	# ~ trainImages1 = np.asarray([trainImages[x] for x in pickIndexes])
+	highIndex = len(trainImages)
+	sizeOfSet = NUM_SQUARES
+	if sizeOfSet > highIndex + 1: #Just in case user enters more squares than exist.
+		sizeOfSet = highIndex + 1
+		print("!!!Limiting size of squares for training to actual number of squares!!!")
+	print("Number of squares to be used for training: " + str(sizeOfSet))
+	updateGlobalNumSquares(sizeOfSet)
+
+	pickIndexes = rng.integers(low = 0, high = highIndex, size = sizeOfSet)
 	trainImages = trainImages[pickIndexes]
-	# ~ trainTruth = np.asarray([trainTruth[x] for x in pickIndexes])
 	trainTruth = trainTruth[pickIndexes]
 	
+	sizeOfTestSet = sizeOfSet
+	if sizeOfTestSet > len(testImages):
+		sizeOfTestSet = len(testImages)
 	rng = np.random.default_rng(23456)
-	pickIndexes = rng.integers(low = 0, high = len(testImages), size = NUM_SQUARES_TEST)
-	# ~ testImages = np.asarray([testImages[x]] for x in pickIndexes)
+	print("sizeOfTestSet: " + str(sizeOfTestSet))
+	pickIndexes = rng.integers(low = 0, high = len(testImages), size = sizeOfTestSet)
 	testImages = testImages[pickIndexes]
-	# ~ testTruths = np.asarray([testTruths[x]] for x in pickIndexes)
 	testTruths = testTruths[pickIndexes]
 	
 	
@@ -165,12 +173,12 @@ def main(args):
 	print("There are " + str(len(testImages)) + " testing images.")
 
 	theModel, theHistory = trainUnet(trainImages, trainTruth, checkpointFolder)
-	# ~ something = thenet(testImages[0])
 
 	print("Saving model...")
 	theModel.save(savedModelFolder + "saved-model.h5")
 	print("Done!")
 	print("Calculating scores...")
+	print("len testImages: " + str(len(testImages)))
 	scores = theModel.evaluate(testImages, testTruths)
 	print("Done!")
 	print("Scores object: " + str(scores))
@@ -179,6 +187,8 @@ def main(args):
 	print("%s: %.2f%%" % (theModel.metrics_names[1], scores[1]*100))
 	
 	performEvaluation(theHistory, tmpFolder)
+	
+	print("len testImages: " + str(len(testImages)))
 	
 	randNum = random.randint(0, len(testImages) - 1)
 	modelOut = theModel.predict(testImages)
@@ -192,8 +202,15 @@ def main(args):
 	binarizedOut = ((modelOut > 0.5).astype(np.uint8) * 255).astype(np.uint8) #######test this thing more
 	# ~ binarizedOut = (modelOut > 0.5).astype(np.uint8) * 255
 	
-	print("Saving figures...")
-	for i in tqdm(range(len(modelOut))):
+	print("Saving random sample of figures...")
+	rng2 = np.random.default_rng(12345)
+	numToSave = 66
+	print("len modelOut: " + str(len(modelOut)))
+	if len(modelOut) < numToSave:
+		numToSave = len(modelOut)
+	print("numToSave: " + str(numToSave))
+	saveIndexes = rng2.integers(low = 0, high = len(modelOut), size = numToSave)
+	for i in tqdm(saveIndexes):
 		# ~ imsave(predictionsFolder + "fig[" + str(i) + "]squeeze.png", np.squeeze(modelOut[i]))
 		imsave(predictionsFolder + "fig[" + str(i) + "]premask.png", modelOut[i])
 		imsave(predictionsFolder + "fig[" + str(i) + "]predict.png", binarizedOut[i])
@@ -265,6 +282,10 @@ def checkArgs(args):
 		print("Global batch size should be between 1 and the number" \
 				+ " of training squares. Pick a better number.")
 		sys.exit(-5)
+
+def updateGlobalNumSquares(newNumSquares):
+		global NUM_SQUARES
+		NUM_SQUARES = newNumSquares
 
 
 def performEvaluation(history, tmpFolder):
