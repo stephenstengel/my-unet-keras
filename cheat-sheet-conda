@@ -1,0 +1,33 @@
+A small conda cheat sheet for Anaconda and miniconda.
+
+Make an environment:
+conda create --name myenv2
+
+Make an environment with some packages installed
+conda create --name myenv package1 package2
+
+Make an environment with a particular version of a package:
+conda create --name myenv package1 python=3.6
+
+Export an environment to a file:
+conda env export > my-environment.yml
+
+Import an environment from a file:
+conda env create -f my-environment.yml
+
+Delete an environment:
+conda env remove -n myenv
+
+Activate an environment:
+conda activate myenv
+
+Deactivate conda:
+conda deactivate
+
+List your environments:
+conda env list
+
+Command that I used to make my environment: 
+conda create --name myunet tensorflow keras numpy Pillow tqdm scikit-learn scikit-image matplotlib
+
+Stephen Stengel <stephen.stengel@cwu.edu> 2022 MIT LICENSE

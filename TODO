@@ -1,0 +1,17 @@
+TODO
+Clean up the code to merge to main
+
+Add the full image predict functionality
+
+Use jaccard and dice to estimate veracity.
+
+Add jaccard and dice as functions to use during training.
+
+Add nicer output of the four images for easier viewing.
+
+Remove global variables; replace with function passing? how will that work with loading a model? if loading model, skip the import steps; add command line flag to load model.
+
+Add function to start program using a saved model and saved images.
+
+-- nice later stuff
+Make a GUI to run tests easier. There could be radio buttons for each of the valid flags and a switch for starting fom a saved model. The switch could open a separate tab or something. There could be a built in console readout. I've done a bit of python gtk so it shouldn't be too difficult to hack something together.
