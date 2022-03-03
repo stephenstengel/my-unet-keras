@@ -593,7 +593,11 @@ def predictWholeImage(inputImage, theModel, squareSize):
 			print("i: " + str(i) + "\tj: " + str(j))
 			print("sqHi: " + str(squaresHigh) + "\tsqWi: " + str(squaresWide))
 			thisSquare = binarizedOuts[(i * squaresHigh) + j]
-			bigOut[i : (i * squareSize) + squareSize , j : (j * squareSize) + squareSize ] = thisSquare
+			iStart = i * squareSize
+			iEnd = (i * squareSize) + squareSize
+			jStart = j * squareSize
+			jEnd = (j * squareSize) + squareSize
+			bigOut[i * squareSize : (i * squareSize) + squareSize , j * squareSize : (j * squareSize) + squareSize ] = thisSquare
 	
 	# ~ combined = np.asarray(theRowsList)
 	# ~ combined = combined.reshape((64,64,1))
