@@ -80,10 +80,12 @@ def main(args):
 	checkpointFolder = tmpFolder + "checkpoint/"
 	savedModelFolder = tmpFolder + "saved-model/"
 	predictionsFolder = tmpFolder + "predictions/"
+	wholePredictionsFolder = tmpFolder + "whole-predictions/"
 	os.system("mkdir -p " + trainingFolder)
 	os.system("mkdir -p " + checkpointFolder)
 	os.system("mkdir -p " + savedModelFolder)
 	os.system("mkdir -p " + predictionsFolder)
+	os.system("mkdir -p " + wholePredictionsFolder)
 	global OUT_TEXT_PATH
 	OUT_TEXT_PATH = tmpFolder + "accuracy-jaccard-dice.txt"
 	print("Done!")
@@ -102,9 +104,11 @@ def main(args):
 	# ~ print("Done!")
 	
 	print("Creating train and test sets...")
-	trainImages, trainTruth, testImages, testTruths = createTrainAndTestSets()
+	trainImages, trainTruth, testImages, testTruths, wholeOriginals, wholeTruths = createTrainAndTestSets()
 	print("Done!")
 	
+	print("shape of wholeOriginals: " + str(np.shape(wholeOriginals)))
+	print("shape of wholeTruths: " + str(np.shape(wholeTruths)))
 	
 	#Images not currently called from disk. Commenting for speed testing.
 	# ~ saveExperimentImages(trainImages, trainTruth, testImages, testTruths, trainingFolder)
@@ -176,10 +180,16 @@ def main(args):
 	performEvaluation(theHistory, tmpFolder)
 	
 	randNum = random.randint(0, len(testImages) - 1)
+	print("shape of testImages right before predict: " + str(np.shape(testImages)))
+	# ~ print("good testImages right before predict as string: " + str(testImages))
 	modelOut = theModel.predict(testImages)
 	
 	#Still get warning messages so far
 	binarizedOut = ((modelOut > 0.5).astype(np.uint8) * 255).astype(np.uint8) #######test this thing more
+	#I found another way. Make a mask of the image
+	# ~ mask = modelOut <= 0.5
+	# ~ whiteSquareOfSameSize[mask] = 0
+	#This should also get rid of the weird conversion warnings because it's an all new image.
 	
 	print("Saving random sample of figures...")
 	rng2 = np.random.default_rng(54322)
@@ -211,7 +221,22 @@ def main(args):
 			# ~ print(thisString)
 			outFile.write(thisString)
 	print("Done!")
+	
+	
+	print("Predicting output of whole images...")
+	print("shape of wholeOriginals: " + str(np.shape(wholeOriginals)))
+	for i in range(len(wholeOriginals)):
+		print(str(np.shape(wholeOriginals[i])))
+	print("##########################################################")
+	print("shape of wholeTruths: " + str(np.shape(wholeTruths)))
+	for i in tqdm(range(len(wholeOriginals))):
+		# ~ wholeOriginals, wholeTruths
+		predictedImage = predictWholeImage(wholeOriginals[i], theModel, NUM_SQUARES)
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", predictedImage)
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", wholeTruths[i])
 
+	print("Done!")
+	
 	return 0
 
 
@@ -409,13 +434,14 @@ def createTrainAndTestSets():
 	trainImageFileNames, trainTruthFileNames, \
 		testImageFileNames, testTruthFileNames = getFileNames()
 
-	trainImages, trainTruth = getImageAndTruth(trainImageFileNames, trainTruthFileNames)
+	trainImages, trainTruth, _, _ = getImageAndTruth(trainImageFileNames, trainTruthFileNames)
 	trainTruth = convertImagesToGrayscale(trainTruth)
 	
-	testImage, testTruth = getImageAndTruth(testImageFileNames, testTruthFileNames)
+	testImage, testTruth, wholeOriginals, wholeTruths = getImageAndTruth(testImageFileNames, testTruthFileNames)
 	testTruth = convertImagesToGrayscale(testTruth)
+	wholeTruths = convertImagesToGrayscaleList(wholeTruths)
 
-	return trainImages, trainTruth, testImage, testTruth
+	return trainImages, trainTruth, testImage, testTruth, wholeOriginals, wholeTruths
 
 		
 #This function gets the source image, cuts it into smaller squares, then
@@ -423,14 +449,23 @@ def createTrainAndTestSets():
 #will correspond to the base truth squares.
 #Try using a method from here to avoid using lists on the arrays:
 #https://stackoverflow.com/questions/50226821/how-to-extend-numpy-arrray
+#Also returns a copy of the original uncut images as lists.
 def getImageAndTruth(originalFilenames, truthFilenames):
 	outOriginals, outTruths = [], []
 	
+	wholeOriginals = []
+	wholeTruths = []
 	print("Importing " + originalFilenames[0] + " and friends...")
 	for i in tqdm(range(len(originalFilenames))):
 		# ~ print("\rImporting " + originalFilenames[i] + "...", end = "")
 		myOriginal = imread(originalFilenames[i])[:, :, :3] #this is pretty arcane. research later
 		myTruth = imread(truthFilenames[i])[:, :, :3] #this is pretty arcane. research later
+		
+		#save original images as list for returning to main
+		thisOriginal = myOriginal ##Test before removing these temp vals.
+		thisTruth = myTruth
+		wholeOriginals.append(np.asarray(thisOriginal))
+		wholeTruths.append(np.asarray(thisTruth))
 		
 		#Now make the cuts and save the results to a list. Then later convert list to array.
 		originalCuts = cutImageIntoSmallSquares(myOriginal)
@@ -444,7 +479,7 @@ def getImageAndTruth(originalFilenames, truthFilenames):
 	#can move to return line later maybe.
 	outOriginals, outTruths = np.asarray(outOriginals), np.asarray(outTruths)
 	
-	return outOriginals, outTruths
+	return outOriginals, outTruths, wholeOriginals, wholeTruths
 
 
 #Cut an image into smaller squares, returns them as a list.
@@ -452,9 +487,7 @@ def getImageAndTruth(originalFilenames, truthFilenames):
 #https://stackoverflow.com/questions/5953373/how-to-split-image-into-multiple-pieces-in-python#7051075
 #Change to using numpy methods later for much speed-up?:
 #https://towardsdatascience.com/efficiently-splitting-an-image-into-tiles-in-python-using-numpy-d1bf0dd7b6f7?gi=2faa21fa5964
-#TODO::: I could add whitespace to the edges of the input image to get
-#the full range of origin pixels?
-#The imput is in scikit-image format. It is converted to pillow to crop
+#The input is in scikit-image format. It is converted to pillow to crop
 #more easily and for saving???. Then converted back for the output list.
 #Whitespace is appended to the right and bottom of the image so that the crop will include everything.
 def cutImageIntoSmallSquares(skImage):
@@ -484,7 +517,56 @@ def cutImageIntoSmallSquares(skImage):
 			# ~ plt.show()
 		
 	return skOutList
+
+
+#This function cuts a large input image into little squares, uses the
+#trained model to predict the binarization of each, then stitches each
+#image back into a whole for output.
+def predictWholeImage(inputImage, theModel, squareSize):
+	##get dimensions of the image
+	height, width, _ = inputImage.shape
+	##get the number of squares per row of the image
+	squaresWide = (width // squareSize) + 1
+	widthPlusRightBuffer = squaresWide * squareSize
+	squaresHigh = (height // squareSize) + 1
+	heightPlusBottomBumper = squaresHigh * squareSize
 	
+	#Dice the image into bits
+	print("shape of input Image right before dicing: " + str(np.shape(inputImage)))
+	print("input Image right before dicing as string: " + str(inputImage))
+	dicedImage = cutImageIntoSmallSquares(inputImage)
+	# ~ print("shape of dicedImage right before hacking: " + str(np.shape(dicedImage)))
+	# ~ #put output into list with extend then np.asaray the whole list to match elswhere.
+	# ~ tmpList = []
+	# ~ for i in range(len(dicedImage)):
+		# ~ tmpList.extend(dicedImage[i])
+	# ~ dicedImage = np.asarray(tmpList)
+	
+	##Predict the outputs of each square
+	dicedImage = np.asarray(dicedImage)
+	# ~ print("shape of dicedImage right before predict: " + str(np.shape(dicedImage)))
+	# ~ print("dicedImage right before predict as string: " + str(dicedImage))
+	modelOut = theModel.predict(dicedImage)
+	
+	##This is the code from main. I know it's bad now, but I'll keep it
+	##consistent until I create a helper function for it. ######################################################################################################
+	binarizedOuts = ((modelOut > 0.5).astype(np.uint8) * 255).astype(np.uint8)
+	
+	#Stitch image using dimensions from above
+	#combine each image row into numpy array
+	theRowsList = []
+	for i in range(squaresHigh):
+		thisRow = binarizedOuts[ i * squaresWide : (i + 1) * squaresWide ]
+		theRowsList.append(thisRow)
+	#combine all rows into numpy array
+	combined = np.vstack(theRowsList)
+	
+	#Remove the extra padding from the edge of the image.
+	outImage = combined[ :height, :width]
+	
+	
+	return inputImage
+
 
 def convertImagesToGrayscale(inputImages):
 	outImage = []
@@ -492,6 +574,15 @@ def convertImagesToGrayscale(inputImages):
 		outImage.append( rgb2gray(image) )
 	
 	return np.asarray(outImage)
+
+
+#Returns a list instead of an np array
+def convertImagesToGrayscaleList(inputImages):
+	outImage = []
+	for image in inputImages:
+		outImage.append( np.asarray(rgb2gray(image)) )
+	
+	return outImage
 
 
 #returns the filenames of the images for (trainImage, trainTruth),(testimage, testTruth)

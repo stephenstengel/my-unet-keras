@@ -1,0 +1,44 @@
+Use a batch size of 1 on cpu.
+
+Increase number of epochs when using larger batch size on GPU.
+
+I did a few tests and found that increased batch size reduces accuracy on cpu. So I should increase the number of epochs to compensate on GPU. It's fine for GPU because of parallelization. 
+
+imread_collection("*.png") seems to be a simple way to read all in a folder?
+
+https://scikit-image.org/docs/dev/user_guide/getting_started.html  simpler
+
+>>> mask = camera < 87
+>>> # Set to "white" (255) the pixels where mask is True
+>>> camera[mask] = 255
+
+img.mean() returns the mean value. could be a better binarization metric?
+
+to fill the whole bitfield.
+>>> from skimage import exposure
+>>> image = exposure.rescale_intensity(img10bit, in_range=(0, 2**10 - 1))
+>>> image = exposure.rescale_intensity(img10bit, in_range='uint10')
+
+https://scikit-image.org/docs/dev/user_guide/data_types.html
+"You should never use astype on an image, because it violates these assumptions about the dtype range:"
+>>> image = exposure.rescale_intensity(img_int32, out_range=(0, 2**31 - 1))
+>>> img_uint8 = img_as_ubyte(image)
+
+
+Using an image from OpenCV with skimage¶
+
+If cv_image is an array of unsigned bytes, skimage will understand it by default. If you prefer working with floating point images, img_as_float() can be used to convert the image:
+>>>
+
+>>> from skimage.util import img_as_float
+>>> image = img_as_float(any_opencv_image)
+
+Using an image from skimage with OpenCV
+
+The reverse can be achieved with img_as_ubyte():
+
+These can replace my cutImage functions.
+np.pad  !!! NOTE: skimage.util.pad is a wrapper for np.pad that appears in ancient code. !!!
+skimage.util.view_as_windows(arr_in, window_shape, step=1)
+
+numpy.vstack to take a list of arrays and stack them into one big array!
