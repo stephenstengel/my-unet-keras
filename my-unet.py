@@ -231,7 +231,7 @@ def main(args):
 	print("shape of wholeTruths: " + str(np.shape(wholeTruths)))
 	for i in tqdm(range(len(wholeOriginals))):
 		# ~ wholeOriginals, wholeTruths
-		predictedImage = predictWholeImage(wholeOriginals[i], theModel, NUM_SQUARES)
+		predictedImage = predictWholeImage(wholeOriginals[i], theModel, HACK_SIZE)
 		print("Shape of predicted image " + str(i) + ": " + str(np.shape(predictedImage)))
 		# ~ predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
 		# ~ print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
@@ -526,6 +526,7 @@ def cutImageIntoSmallSquares(skImage):
 #trained model to predict the binarization of each, then stitches each
 #image back into a whole for output.
 def predictWholeImage(inputImage, theModel, squareSize):
+	print("squareSize: " + str(squareSize))
 	##get dimensions of the image
 	height, width, _ = inputImage.shape
 	##get the number of squares per row of the image
@@ -560,13 +561,14 @@ def predictWholeImage(inputImage, theModel, squareSize):
 	theRowsList = []
 	print("squaresHigh: " + str(squaresHigh))
 	print("squaresWide: " + str(squaresWide))
-	for i in range(squaresHigh):
-		thisRow = []
-		for j in range(squaresWide):
-			thisThing = binarizedOuts[(i * squaresWide) + j]
-			thisRow.extend(thisThing)
-		# ~ np.vstack(thisRow)
-		theRowsList.extend(thisRow)
+	# ~ for i in range(squaresHigh):
+		# ~ thisRow = []
+		# ~ for j in range(squaresWide):
+			# ~ thisThing = binarizedOuts[(i * squaresWide) + j]
+			# ~ thisRow.append(thisThing)
+		# ~ np.hstack(thisRow)
+		# ~ theRowsList.extend(thisRow)
+	########################################################
 	# ~ np.vstack(theRowsList)
 	# ~ for i in range(squaresHigh):
 		# ~ ##I might have rows and columns backwards.####################################
@@ -576,17 +578,26 @@ def predictWholeImage(inputImage, theModel, squareSize):
 			# ~ theRowsList = thisRow
 		# ~ else:
 			# ~ np.hstack((theRowsList, thisRow)) #h or v?
+	########################################################
 	# ~ for i in range(squaresWide):
 		# ~ thisRow = binarizedOuts[ i * squaresWide : (i + 1) * squaresWide ]
 		# ~ theRowsList.append(thisRow)
 	#combine all rows into numpy array
 	# ~ combined = np.vstack(theRowsList)
-	combined = np.asarray(theRowsList)
+	##################################
+	
+	print("squareSize: " + str(squareSize))
+	bigOut = np.zeros(shape = (squareSize * squaresWide, squareSize * squaresHigh, 1), dtype = np.uint8)
+	for i in range(squaresWide):
+		for j in range(squaresHigh):
+			bigOut[i : i + squareSize, j : j + squareSize] = binarizedOuts[(i * squaresWide) + j]
+	
+	# ~ combined = np.asarray(theRowsList)
 	# ~ combined = combined.reshape((64,64,1))
 	
 	#Remove the extra padding from the edge of the image.
 	# ~ outImage = combined[ :height, :width]
-	outImage = combined
+	outImage = bigOut
 	
 	
 	return outImage
