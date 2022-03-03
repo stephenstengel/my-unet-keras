@@ -213,12 +213,11 @@ def main(args):
 	
 	#Testing the jaccard and dice functions
 	print("Calculating jaccard and dice...")
-	with open(OUT_TEXT_PATH, "w") as outFile:
+	with open(OUT_TEXT_PATH + "testsquares", "w") as outFile:
 		for i in tqdm(range(len(binarizedOut))):
 			jac = jaccardIndex(testTruthsUInt[i], binarizedOut[i])
 			dice = diceIndex(testTruthsUInt[i], binarizedOut[i])
 			thisString = str(i) + "\tjaccard: " + str(jac) + "\tdice: " + str(dice) + "\n"
-			# ~ print(thisString)
 			outFile.write(thisString)
 	print("Done!")
 	
@@ -229,6 +228,7 @@ def main(args):
 		print(str(np.shape(wholeOriginals[i])))
 	print("##########################################################")
 	print("shape of wholeTruths: " + str(np.shape(wholeTruths)))
+	predictionsList = []
 	for i in tqdm(range(len(wholeOriginals))):
 		# ~ wholeOriginals, wholeTruths
 		predictedImage = predictWholeImage(wholeOriginals[i], theModel, HACK_SIZE)
@@ -237,10 +237,27 @@ def main(args):
 		# ~ print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", predictedImage)
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", wholeTruths[i])
+		predictionsList.append(predictedImage)
+	evaluatePredictionJaccardDice(predictionsList, wholeTruths, OUT_TEXT_PATH)
 
 	print("Done!")
 	
+	
 	return 0
+
+
+
+def evaluatePredictionJaccardDice(predictionsList, wholeTruths, OUT_TEXT_PATH):
+	print("Calculating jaccard and dice...")
+	with open(OUT_TEXT_PATH, "w") as outFile:
+		for i in tqdm(range(len(predictionsList))):
+			thisTruth = np.asarray(wholeTruths[i])
+			thisTruth = thisTruth.astype(np.uint8)
+			jac = jaccardIndex(thisTruth, predictionsList[i])
+			dice = diceIndex(thisTruth, predictionsList[i])
+			thisString = str(i) + "\tjaccard: " + str(jac) + "\tdice: " + str(dice) + "\n"
+			outFile.write(thisString)
+	print("Done!")
 
 
 def checkArgs(args):

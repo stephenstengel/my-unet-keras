@@ -1,3 +1,6 @@
+Save slice indexes at start when cutting up the image, so you can just
+use those later when stitching them together.
+
 Use a batch size of 1 on cpu.
 
 Increase number of epochs when using larger batch size on GPU.
