@@ -232,6 +232,9 @@ def main(args):
 	for i in tqdm(range(len(wholeOriginals))):
 		# ~ wholeOriginals, wholeTruths
 		predictedImage = predictWholeImage(wholeOriginals[i], theModel, NUM_SQUARES)
+		print("Shape of predicted image " + str(i) + ": " + str(np.shape(predictedImage)))
+		predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
+		print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", predictedImage)
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", wholeTruths[i])
 
@@ -565,7 +568,7 @@ def predictWholeImage(inputImage, theModel, squareSize):
 	outImage = combined[ :height, :width]
 	
 	
-	return inputImage
+	return outImage
 
 
 def convertImagesToGrayscale(inputImages):
