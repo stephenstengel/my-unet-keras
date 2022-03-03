@@ -1,7 +1,9 @@
 TODO
 Clean up the code to merge to main
 
-Add the full image predict functionality
+Add ability to start from saved model so I don't take all day to test evry tiny change.
+
+save image slice indexes when cutting up images for stitching back together purposes.
 
 !!! Use scikit-images built in functions to convert image types !!!
 https://scikit-image.org/docs/dev/user_guide/data_types.html
