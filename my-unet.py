@@ -751,10 +751,11 @@ def diceLoss(truth, prediction):
 	return smooth - diceIndex(truth, prediction)
 
 
-def createPredictionMask(truth, prediction):
+# ! ! Make sure it is complete for printing.
+def createPredictionMask(truth, prediction, squareSize):
 	pFlat = backend.flatten(prediction)
 	tFlat = backend.flatten(truth)
-	mask = pFlat and tFlat
+	mask = pFlat * tFlat
 	
 	return np.reshape(mask, (squareSize, squareSize, 1))
 
