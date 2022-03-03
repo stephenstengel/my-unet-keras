@@ -587,10 +587,13 @@ def predictWholeImage(inputImage, theModel, squareSize):
 	##################################
 	
 	print("squareSize: " + str(squareSize))
-	bigOut = np.zeros(shape = (squareSize * squaresWide, squareSize * squaresHigh, 1), dtype = np.uint8)
-	for i in range(squaresWide):
-		for j in range(squaresHigh):
-			bigOut[i : i + squareSize, j : j + squareSize] = binarizedOuts[(i * squaresWide) + j]
+	bigOut = np.zeros(shape = (squareSize * squaresHigh, squareSize * squaresWide, 1), dtype = np.uint8) #swap h and w?
+	for i in range(squaresHigh):
+		for j in range(squaresWide):
+			print("i: " + str(i) + "\tj: " + str(j))
+			print("sqHi: " + str(squaresHigh) + "\tsqWi: " + str(squaresWide))
+			thisSquare = binarizedOuts[(i * squaresHigh) + j]
+			bigOut[i : (i * squareSize) + squareSize , j : (j * squareSize) + squareSize ] = thisSquare
 	
 	# ~ combined = np.asarray(theRowsList)
 	# ~ combined = combined.reshape((64,64,1))
