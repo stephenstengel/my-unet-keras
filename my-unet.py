@@ -233,8 +233,8 @@ def main(args):
 		# ~ wholeOriginals, wholeTruths
 		predictedImage = predictWholeImage(wholeOriginals[i], theModel, NUM_SQUARES)
 		print("Shape of predicted image " + str(i) + ": " + str(np.shape(predictedImage)))
-		predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
-		print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
+		# ~ predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
+		# ~ print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", predictedImage)
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", wholeTruths[i])
 
@@ -536,7 +536,7 @@ def predictWholeImage(inputImage, theModel, squareSize):
 	
 	#Dice the image into bits
 	print("shape of input Image right before dicing: " + str(np.shape(inputImage)))
-	print("input Image right before dicing as string: " + str(inputImage))
+	# ~ print("input Image right before dicing as string: " + str(inputImage))
 	dicedImage = cutImageIntoSmallSquares(inputImage)
 	# ~ print("shape of dicedImage right before hacking: " + str(np.shape(dicedImage)))
 	# ~ #put output into list with extend then np.asaray the whole list to match elswhere.
@@ -558,14 +558,35 @@ def predictWholeImage(inputImage, theModel, squareSize):
 	#Stitch image using dimensions from above
 	#combine each image row into numpy array
 	theRowsList = []
+	print("squaresHigh: " + str(squaresHigh))
+	print("squaresWide: " + str(squaresWide))
 	for i in range(squaresHigh):
-		thisRow = binarizedOuts[ i * squaresWide : (i + 1) * squaresWide ]
-		theRowsList.append(thisRow)
+		thisRow = []
+		for j in range(squaresWide):
+			thisThing = binarizedOuts[(i * squaresWide) + j]
+			thisRow.extend(thisThing)
+		# ~ np.vstack(thisRow)
+		theRowsList.extend(thisRow)
+	# ~ np.vstack(theRowsList)
+	# ~ for i in range(squaresHigh):
+		# ~ ##I might have rows and columns backwards.####################################
+		# ~ thisRow = binarizedOuts[ i * squaresWide : (i + 1) * squaresWide ]
+		# ~ thisRow = np.asarray(thisRow)
+		# ~ if i == 0:
+			# ~ theRowsList = thisRow
+		# ~ else:
+			# ~ np.hstack((theRowsList, thisRow)) #h or v?
+	# ~ for i in range(squaresWide):
+		# ~ thisRow = binarizedOuts[ i * squaresWide : (i + 1) * squaresWide ]
+		# ~ theRowsList.append(thisRow)
 	#combine all rows into numpy array
-	combined = np.vstack(theRowsList)
+	# ~ combined = np.vstack(theRowsList)
+	combined = np.asarray(theRowsList)
+	# ~ combined = combined.reshape((64,64,1))
 	
 	#Remove the extra padding from the edge of the image.
-	outImage = combined[ :height, :width]
+	# ~ outImage = combined[ :height, :width]
+	outImage = combined
 	
 	
 	return outImage
