@@ -235,6 +235,10 @@ def main(args):
 		print("Shape of predicted image " + str(i) + ": " + str(np.shape(predictedImage)))
 		# ~ predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
 		# ~ print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
+		
+		predictedMask = createPredictionMask(wholeTruths[i], predictedImage)
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]mask.png", predictedMask)
+		
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", predictedImage)
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", wholeTruths[i])
 		predictionsList.append(predictedImage)
@@ -722,6 +726,9 @@ def jaccardIndex(truth, prediction):
 	truthFlat = backend.flatten(truth)
 	# ~ intersectionImg = predictionFlat * truthFlat
 	numberPixelsSame = backend.sum(predictionFlat * truthFlat)
+	#I've found the function tensorflow.reduce_sum() which performs a sum by reduction
+	#Is it better than backend.sum?? ##################################################################
+	#the docs say it is equivalent except that numpy will change everything to int64
 
 	return (numberPixelsSame + smooth) / \
 			( \
@@ -752,12 +759,22 @@ def diceLoss(truth, prediction):
 
 
 # ! ! Make sure it is complete for printing.
-def createPredictionMask(truth, prediction, squareSize):
+def createPredictionMask(truth, prediction):
 	pFlat = backend.flatten(prediction)
+	# ~ pFlat = np.asarray(pFlat, dtype = "uint8")
+	pFlat = img_as_bool(pFlat)
 	tFlat = backend.flatten(truth)
-	mask = pFlat * tFlat
+	tFlat = img_as_bool(tFlat)
 	
-	return np.reshape(mask, (squareSize, squareSize, 1))
+	invPFlat = ~pFlat
+	invTFlat = ~tFlat
+	# ~ mask = pFlat * tFlat
+	invMask = invPFlat * invTFlat
+	
+	mask = ~invMask
+	
+	
+	return np.reshape(mask, np.shape(prediction))
 
 
 if __name__ == '__main__':

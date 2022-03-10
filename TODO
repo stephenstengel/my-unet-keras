@@ -1,6 +1,8 @@
 TODO
 Clean up the code to merge to main
 
+Print runtime to a file.
+
 Add ability to start from saved model so I don't take all day to test evry tiny change.
 
 save image slice indexes when cutting up images for stitching back together purposes.
