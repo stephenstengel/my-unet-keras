@@ -1,6 +1,12 @@
 TODO
 Clean up the code to merge to main
 
+Add all years
+
+confusion matrix
+
+k folds
+
 Print runtime to a file.
 
 Add ability to start from saved model so I don't take all day to test evry tiny change.
