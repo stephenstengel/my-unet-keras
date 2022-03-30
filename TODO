@@ -1,6 +1,26 @@
 TODO
 Clean up the code to merge to main
 
+make a baseline network and code to run it. (I've got the network in the baseline form that I want; I just don't have the code to analyze it yet.
+
+confusion matrix
+
+Data augmentation  --  random rotations, overlap the test squares, etc.
+
+Data Augmentation -- my generation idea - check generated data against original and delete if too similar to the original image
+
+roc curve
+
+color pixels -- mask correct / incorrect pixel output in green / red
+
+Try smaller squares  -- Do a square size test after I have baseline model to work with
+
+Adapt square size to text size? Is it possible?
+
+test depth of the u-net
+
+comparisons to other networks of other people.
+
 Add all years
 
 confusion matrix
