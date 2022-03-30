@@ -1,6 +1,20 @@
 TODO
 Clean up the code to merge to main
 
+Fix background / foreground accuracy thing. The model currently marks background as true and checks accuracy from that instead of looking at the text.
+
+memory size errors -- Use the skimage library to convert images
+
+Split program into three parts-- gather images, train, and evaluate. Make each able to run independently or through use of a superscript.
+
+use jaccard / dice for training accuracy?
+
+use library to make running on windows easier. \ /
+
+Read more papers.
+
+Test batch size. I notice a difference is small tests, but wtf is it actually. I wouldn't expect this to have any effect at all.
+
 make a baseline network and code to run it. (I've got the network in the baseline form that I want; I just don't have the code to analyze it yet.
 
 confusion matrix
