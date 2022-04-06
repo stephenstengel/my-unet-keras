@@ -524,6 +524,7 @@ def cutImageIntoSmallSquares(skImage):
 	imageWidth, imageHeight = myImage.size
 	tmpW = ((imageWidth // HACK_SIZE) + 1) * HACK_SIZE
 	tmpH = ((imageHeight // HACK_SIZE) + 1) * HACK_SIZE
+	#Make this next line (0,0,0) once you switch the words to white and background to black.........##############################################################################
 	tmpImg = Image.new(myImage.mode, (tmpW, tmpH), (255, 255, 255))
 	tmpImg.paste(myImage, myImage.getbbox())
 	myImage = tmpImg
