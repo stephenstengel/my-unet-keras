@@ -35,7 +35,8 @@ from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 from keras import backend
 
-from autoinit import AutoInit
+# ~ autoinit stuff
+# ~ from autoinit import AutoInit
 
 np.random.seed(55555)
 random.seed(55555)
@@ -374,7 +375,8 @@ def createStandardUnet():
 	output = decode(conv5, conv4, conv3, conv2, conv1)
 	model = Model(inputs, output)
 	
-	model = AutoInit().initialize_model(model)
+	# ~ autoinit test. Uncomment to add the autoinit thingy
+	# ~ model = AutoInit().initialize_model(model)
 	
 	# ~ model.compile(optimizer = Adam(learning_rate=1e-4), loss='categorical_crossentropy',  metrics=["acc"])
 	model.compile(optimizer = "adam", loss = "binary_crossentropy",  metrics = ["acc"])
