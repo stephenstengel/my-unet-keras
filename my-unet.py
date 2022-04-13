@@ -572,7 +572,11 @@ def cutImageIntoSmallSquares(skImage):
 	print("myImage.getbbox(): " + str(myImage.getbbox()))
 	print("myImage width, height: " + "(" + str(imageWidth) + "," + str(imageHeight) + ")")
 	print("myImage.size: " + str(myImage.size))
-	tmpImg.paste(myImage, myImage.getbbox())
+	# ~ tmpImg.paste(myImage, myImage.getbbox())
+	wHehe, hHehe = myImage.size
+	heheHack = (0, 0, wHehe, hHehe)
+	print("heheHack: " + str(heheHack))
+	tmpImg.paste(myImage, heheHack)
 	myImage = tmpImg
 	
 	# ~ tmp2 = np.asarray(myImage)
