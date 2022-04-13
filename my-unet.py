@@ -37,7 +37,7 @@ from keras import Model, callbacks
 from keras import backend
 
 # ~ autoinit stuff
-from autoinit import AutoInit
+# ~ from autoinit import AutoInit
 
 np.random.seed(55555)
 random.seed(55555)
@@ -392,7 +392,7 @@ def createStandardUnet():
 	model = Model(inputs, output)
 	
 	# ~ autoinit test. Uncomment to add the autoinit thingy
-	model = AutoInit().initialize_model(model)
+	# ~ model = AutoInit().initialize_model(model)
 	
 	# ~ model.compile(optimizer = Adam(learning_rate=1e-4), loss='categorical_crossentropy',  metrics=["acc"])
 	model.compile(
