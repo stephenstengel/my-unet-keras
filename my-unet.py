@@ -24,10 +24,9 @@ from tqdm import tqdm
 from skimage.io import imread, imshow, imsave
 from skimage.transform import resize
 from matplotlib import pyplot as plt
-from skimage.util import img_as_uint
-from skimage.util import img_as_bool
+from skimage.util import img_as_bool, img_as_float, img_as_uint, img_as_ubyte
 from skimage.util import invert
-from skimage.color import rgb2gray
+from skimage.color import rgb2gray, gray2rgb, rgb2hsv, hsv2rgb
 
 
 import tensorflow as tf
@@ -211,10 +210,10 @@ def main(args):
 	#save copies of some of the squares used in learning.
 	if GLOBAL_SQUARE_TEST_SAVE:
 		for i in tqdm(saveIndexes):
-			imsave(predictionsFolder + "fig[" + str(i) + "]premask.png", modelOut[i])
-			imsave(predictionsFolder + "fig[" + str(i) + "]predict.png", binarizedOut[i])
-			imsave(predictionsFolder + "fig[" + str(i) + "]testimg.png", testImages[i])
-			imsave(predictionsFolder + "fig[" + str(i) + "]truthim.png", testTruths[i])
+			imsave(predictionsFolder + "fig[" + str(i) + "]premask.png", img_as_ubyte(modelOut[i]))
+			imsave(predictionsFolder + "fig[" + str(i) + "]predict.png", img_as_ubyte(binarizedOut[i]))
+			imsave(predictionsFolder + "fig[" + str(i) + "]testimg.png", img_as_ubyte(testImages[i]))
+			imsave(predictionsFolder + "fig[" + str(i) + "]truthim.png", img_as_ubyte(testTruths[i]))
 		print("Done!")
 
 	testTruthsUInt = testTruths.astype(np.uint8)
@@ -245,9 +244,12 @@ def main(args):
 		# ~ print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
 		
 		predictedMask = createPredictionMask(wholeTruths[i], predictedImage)
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]mask.png", predictedMask)
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", predictedImage)
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", wholeTruths[i])
+		coloredPrediction = colorPredictionWithPredictionMask(predictedMask, predictedImage)
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]mask.png", img_as_ubyte(predictedMask))
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", img_as_ubyte(predictedImage))
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", img_as_ubyte(wholeTruths[i]))
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]colormask.png", img_as_ubyte(coloredPrediction))
+
 		predictionsList.append(predictedImage)
 	evaluatePredictionJaccardDice(predictionsList, wholeTruths, OUT_TEXT_PATH)
 
@@ -334,15 +336,17 @@ def performEvaluation(history, tmpFolder):
 	print(history.history)
 	
 	accuracy = history.history["acc"]
-	# ~ accuracy = history.history["jaccardIndex"] #####################################################
 	val_accuracy = history.history["val_acc"]
+	# ~ accuracy = history.history["jaccardIndex"] #####################################################
 	# ~ val_accuracy = history.history["val_jaccardIndex"]
+	jaccInd = history.history["jaccardIndex"] #####################################################
 	
 	loss = history.history["loss"]
 	val_loss = history.history["val_loss"]
 	epochs = range(1, len(accuracy) + 1)
 	plt.plot(epochs, accuracy, "o", label="Training accuracy")
 	plt.plot(epochs, val_accuracy, "^", label="Validation accuracy")
+	plt.plot(epochs, jaccInd, "*", label="Jaccard Index")
 	plt.title("Training and validation accuracy")
 	plt.legend()
 	plt.savefig(tmpFolder + "trainvalacc.png")
@@ -365,9 +369,14 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 	# ~ earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 2)
 	checkpointer = callbacks.ModelCheckpoint(
 			filepath = checkpointFolder,
-			monitor = "val_loss",
+			monitor = "val_acc",
+			# ~ monitor = "val_loss", #original ##################################################
+			# ~ monitor = "val_jaccardIndex",
+			# ~ monitor = "jaccardIndex", ####### sorta worked. black output though.
+			# ~ monitor = "val_jaccardLoss",
 			save_best_only = True,
-			mode = "min")
+			mode = "max")
+			# ~ mode = "min")
 	# ~ callbacks_list = [earlyStopper, checkpointer]
 	callbacks_list = [checkpointer]
 	
@@ -394,12 +403,14 @@ def createStandardUnet():
 	
 	# ~ model.compile(optimizer = Adam(learning_rate=1e-4), loss='categorical_crossentropy',  metrics=["acc"])
 	model.compile(
-			optimizer = "adam",
+			# ~ optimizer = "adam",
+			optimizer = Adam(),
 			
 			loss = "binary_crossentropy",
 			# ~ loss = jaccardLoss,
-			metrics = ["acc"])
+			# ~ metrics = ["acc"])
 			# ~ metrics = [jaccardIndex])
+			metrics = ["acc", jaccardIndex])
 	
 	
 	return model
@@ -565,17 +576,18 @@ def cutImageIntoSmallSquares(skImage):
 	tmpH = ((imageHeight // HACK_SIZE) + 1) * HACK_SIZE
 	#Make this next line (0,0,0) once you switch the words to white and background to black.........##############################################################################
 	tmpImg = Image.new(myImage.mode, (tmpW, tmpH), (255, 255, 255))
-	print("tmpImg.mode: " + str(tmpImg.mode))
-	print("tmpImg.getbbox(): " + str(tmpImg.getbbox()))
-	print("tmpImg.size: " + str(tmpImg.size))
-	print("myImage.mode: " + str(myImage.mode))
-	print("myImage.getbbox(): " + str(myImage.getbbox()))
-	print("myImage width, height: " + "(" + str(imageWidth) + "," + str(imageHeight) + ")")
-	print("myImage.size: " + str(myImage.size))
-	# ~ tmpImg.paste(myImage, myImage.getbbox())
 	wHehe, hHehe = myImage.size
 	heheHack = (0, 0, wHehe, hHehe)
-	print("heheHack: " + str(heheHack))
+	# ~ tmpImg.paste(myImage, myImage.getbbox())
+	if IS_GLOBAL_PRINTING_ON:
+		print("tmpImg.mode: " + str(tmpImg.mode))
+		print("tmpImg.getbbox(): " + str(tmpImg.getbbox()))
+		print("tmpImg.size: " + str(tmpImg.size))
+		print("myImage.mode: " + str(myImage.mode))
+		print("myImage.getbbox(): " + str(myImage.getbbox()))
+		print("myImage width, height: " + "(" + str(imageWidth) + "," + str(imageHeight) + ")")
+		print("myImage.size: " + str(myImage.size))
+		print("heheHack: " + str(heheHack))
 	tmpImg.paste(myImage, heheHack)
 	myImage = tmpImg
 	
@@ -634,40 +646,18 @@ def predictWholeImage(inputImage, theModel, squareSize):
 	
 	#Stitch image using dimensions from above
 	#combine each image row into numpy array
-	theRowsList = []
-	print("squaresHigh: " + str(squaresHigh))
-	print("squaresWide: " + str(squaresWide))
-	# ~ for i in range(squaresHigh):
-		# ~ thisRow = []
-		# ~ for j in range(squaresWide):
-			# ~ thisThing = binarizedOuts[(i * squaresWide) + j]
-			# ~ thisRow.append(thisThing)
-		# ~ np.hstack(thisRow)
-		# ~ theRowsList.extend(thisRow)
-	########################################################
-	# ~ np.vstack(theRowsList)
-	# ~ for i in range(squaresHigh):
-		# ~ ##I might have rows and columns backwards.####################################
-		# ~ thisRow = binarizedOuts[ i * squaresWide : (i + 1) * squaresWide ]
-		# ~ thisRow = np.asarray(thisRow)
-		# ~ if i == 0:
-			# ~ theRowsList = thisRow
-		# ~ else:
-			# ~ np.hstack((theRowsList, thisRow)) #h or v?
-	########################################################
-	# ~ for i in range(squaresWide):
-		# ~ thisRow = binarizedOuts[ i * squaresWide : (i + 1) * squaresWide ]
-		# ~ theRowsList.append(thisRow)
-	#combine all rows into numpy array
-	# ~ combined = np.vstack(theRowsList)
-	##################################
 	
-	print("squareSize: " + str(squareSize))
+	theRowsList = []
+	
+	# ~ print("squaresHigh: " + str(squaresHigh))
+	# ~ print("squaresWide: " + str(squaresWide))
+	# ~ print("squareSize: " + str(squareSize))
+	
 	bigOut = np.zeros(shape = (squareSize * squaresHigh, squareSize * squaresWide, 1), dtype = np.uint8) #swap h and w?
 	for i in range(squaresHigh):
 		for j in range(squaresWide):
-			print("i: " + str(i) + "\tj: " + str(j))
-			print("sqHi: " + str(squaresHigh) + "\tsqWi: " + str(squaresWide))
+			# ~ print("i: " + str(i) + "\tj: " + str(j))
+			# ~ print("sqHi: " + str(squaresHigh) + "\tsqWi: " + str(squaresWide))
 			thisSquare = binarizedOuts[(i * squaresWide) + j] #w?
 			iStart = i * squareSize
 			iEnd = (i * squareSize) + squareSize
@@ -705,24 +695,55 @@ def convertImagesToGrayscaleList(inputImages):
 
 #returns the filenames of the images for (trainImage, trainTruth),(testimage, testTruth)
 #hardcoded!
+#Test is currently hardcodded to 2016
 def getFileNames():
+	trainTruthNamePairs = []
+	
 	trainImagePath = "../DIBCO/2017/Dataset/"
 	trainTruthPath = "../DIBCO/2017/GT/"
-
-	trainImageFileNames, trainTruthFileNames = \
-			createTrainImageAndTrainTruthFileNames(trainImagePath, trainTruthPath)
-	# ~ print(trainImageFileNames)
-	# ~ print(trainTruthFileNames)
+	trainTruthNamePairs.append( (trainImagePath, trainTruthPath) )
+	# ~ trainImageFileNames, trainTruthFileNames = \
+			# ~ createTrainImageAndTrainTruthFileNames(trainImagePath, trainTruthPath)
 	
+	#need to handle non-bmp
+	# ~ trainPath = "../DIBCO/2009/DIBC02009_Test_images-handwritten/"
+	# ~ gtPath = "../DIBCO/2009/DIBCO2009-GT-Test-images_handwritten/"
+	# ~ trainTruthNamePairs.append( (trainPath, gtPath) )
+	# ~ trainPath = "../DIBCO/2009/DIBCO2009_Test_images-printed/"
+	# ~ gtPath = "../DIBCO/2009/DIBCO2009-GT-Test-images_printed/"
+	# ~ trainTruthNamePairs.append( (trainPath, gtPath) )
+
+	#non-bmps
+	# ~ trainPath = "../DIBCO/2010/DIBC02010_Test_images/"
+	# ~ gtPath = "../DIBCO/2010/DIBC02010_Test_GT/"
+	# ~ trainTruthNamePairs.append( (trainPath, gtPath) )
+	
+	#2011 needs a special function to split the GTs with a wildcard or something.
+	#2012 same
+	
+	# ~ trainPath = "../DIBCO/2013/OriginalImages/"
+	# ~ gtPath = "../DIBCO/2013/GTimages/"
+	# ~ trainTruthNamePairs.append( (trainPath, gtPath) )
+	
+	# ~ trainPath = "../DIBCO/2014/original_images/"
+	# ~ gtPath = "../DIBCO/2014/gt/"
+	# ~ trainTruthNamePairs.append( (trainPath, gtPath) )
+	
+	trainImageFileNames = []
+	trainTruthFileNames = []
+	
+	for pair in trainTruthNamePairs:
+		tImPath, gtImPath = pair
+		trainNames, gtNames = \
+			createTrainImageAndTrainTruthFileNames(tImPath, gtImPath)
+		trainImageFileNames.extend(trainNames)
+		trainTruthFileNames.extend(gtNames)
 	
 	#test image section
 	testImagePath = "../DIBCO/2016/DIPCO2016_dataset/"
 	testTruthPath = "../DIBCO/2016/DIPCO2016_Dataset_GT/"
-	
 	testImageFileNames, testTruthFileNames = \
 			createTrainImageAndTrainTruthFileNames(testImagePath, testTruthPath)
-	# ~ print(testImageFileNames)
-	# ~ print(testTruthFileNames)
 	
 	return trainImageFileNames, trainTruthFileNames, \
 			testImageFileNames, testTruthFileNames
@@ -776,11 +797,21 @@ def prependPath(myPath, nameList):
 #https://gist.github.com/wassname/f1452b748efcbeb4cb9b1d059dce6f96
 #They also suggest abs()
 def jaccardIndex(truth, prediction):
+	#they are tensors?! not images?!?!?!?!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	# ~ truth = img_as_bool(np.asarray(truth)) #fail
+	# ~ prediction = img_as_bool(np.asarray(prediction)) #fail
+	
 	smooth = GLOBAL_SMOOTH_JACCARD
 	predictionFlat = backend.flatten(prediction)
 	truthFlat = backend.flatten(truth)
+	
+	# ~ for i in range(len(predictionFlat)):
+		# ~ if predictionFlat[i] >= 2:
+			# ~ print("This was the bug. images have non- binary values...#############################################################################################################################################################")
+			# ~ print("predictionFlat[" + str(i) + "]: " + str(predictionFlat[i]))
+	
 	# ~ intersectionImg = predictionFlat * truthFlat
-	numberPixelsSame = backend.sum(predictionFlat * truthFlat)
+	numberPixelsSame = backend.sum(truthFlat * predictionFlat)
 	#I've found the function tensorflow.reduce_sum() which performs a sum by reduction
 	#Is it better than backend.sum?? ##################################################################
 	#the docs say it is equivalent except that numpy will change everything to int64
@@ -793,8 +824,7 @@ def jaccardIndex(truth, prediction):
 
 #loss function for use in training.
 def jaccardLoss(truth, prediction):
-	smooth = GLOBAL_SMOOTH_JACCARD
-	return smooth - jaccardIndex(truth, prediction)
+	return  1.0 - jaccardIndex(truth, prediction)
 
 
 #input must be binarized images consisting of values for pixels of either 1 or 0.
@@ -821,15 +851,45 @@ def createPredictionMask(truth, prediction):
 	tFlat = backend.flatten(truth)
 	tFlat = img_as_bool(tFlat)
 	
-	invPFlat = ~pFlat
-	invTFlat = ~tFlat
-	# ~ mask = pFlat * tFlat
-	invMask = invPFlat * invTFlat
-	
-	mask = ~invMask
-	
+	#this inverse was before I inversed at the start.
+	# ~ invPFlat = ~pFlat
+	# ~ invTFlat = ~tFlat
+	# ~ invMask = invPFlat * invTFlat
+	# ~ mask = ~invMask
+
+	mask = pFlat * tFlat
 	
 	return np.reshape(mask, np.shape(prediction))
+
+
+#Color the prediction image with the pixels that are correct in red.
+def colorPredictionWithPredictionMask(predictionMask, originalPrediction):
+	predictionMask = np.squeeze(predictionMask, axis = 2)
+	prediction = img_as_float(originalPrediction)
+	print("predictionMask shape: " + str(predictionMask.shape))
+	rows, cols = predictionMask.shape
+
+	colorMask = np.zeros((rows, cols, 3))
+	colorMask[ predictionMask ] = [1, 0, 0]
+	
+	predictionInColor = np.dstack((prediction, prediction, prediction))
+	
+	predictionColor_hsv = rgb2hsv(predictionInColor)
+	colorMask_hsv = rgb2hsv(colorMask)
+	
+	alpha = 0.6 ##?why?
+	predictionColor_hsv[..., 0] = colorMask_hsv[..., 0]
+	predictionColor_hsv[..., 1] = colorMask_hsv[..., 1] * alpha
+	
+	outImg = hsv2rgb(predictionColor_hsv)
+	
+	# ~ colorMask = predictionMask
+	# ~ red_multiplier = [1, 0, 0]
+	# ~ black_multiplier = [0, 0, 0]
+	
+	# ~ prediction =  red_multiplier * prediction
+	
+	return img_as_ubyte(outImg)
 
 
 if __name__ == '__main__':
