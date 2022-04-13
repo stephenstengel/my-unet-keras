@@ -244,10 +244,8 @@ def main(args):
 		# ~ predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
 		# ~ print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
 		
-		premaskImg = predictedImage
 		predictedMask = createPredictionMask(wholeTruths[i], predictedImage)
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]mask.png", predictedMask)
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]premask.png", premaskImg)
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", predictedImage)
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", wholeTruths[i])
 		predictionsList.append(predictedImage)
@@ -495,12 +493,12 @@ def createTrainAndTestSets():
 	
 	#invert the imported images. Tensorflow counts white as truth
 	#and black as false. I had been doing the inverse previously.
-	# ~ trainImages = invertImagesInArray(trainImages)
-	# ~ trainTruth = invertImagesInArray(trainTruth)
-	# ~ testImage = invertImagesInArray(testImage)
-	# ~ testTruth = invertImagesInArray(testTruth)
-	# ~ wholeOriginals = invertImagesInArray(wholeOriginals)
-	# ~ wholeTruths = invertImagesInArray(wholeTruths)
+	trainImages = invertImagesInArray(trainImages)
+	trainTruth = invertImagesInArray(trainTruth)
+	testImage = invertImagesInArray(testImage)
+	testTruth = invertImagesInArray(testTruth)
+	wholeOriginals = invertImagesInArray(wholeOriginals)
+	wholeTruths = invertImagesInArray(wholeTruths)
 
 	return trainImages, trainTruth, testImage, testTruth, wholeOriginals, wholeTruths
 
@@ -567,6 +565,13 @@ def cutImageIntoSmallSquares(skImage):
 	tmpH = ((imageHeight // HACK_SIZE) + 1) * HACK_SIZE
 	#Make this next line (0,0,0) once you switch the words to white and background to black.........##############################################################################
 	tmpImg = Image.new(myImage.mode, (tmpW, tmpH), (255, 255, 255))
+	print("tmpImg.mode: " + str(tmpImg.mode))
+	print("tmpImg.getbbox(): " + str(tmpImg.getbbox()))
+	print("tmpImg.size: " + str(tmpImg.size))
+	print("myImage.mode: " + str(myImage.mode))
+	print("myImage.getbbox(): " + str(myImage.getbbox()))
+	print("myImage width, height: " + "(" + str(imageWidth) + "," + str(imageHeight) + ")")
+	print("myImage.size: " + str(myImage.size))
 	tmpImg.paste(myImage, myImage.getbbox())
 	myImage = tmpImg
 	
