@@ -62,6 +62,8 @@ Remove global variables; replace with function passing? how will that work with 
 
 Add function to start program using a saved model and saved images.
 
+Invert all images after the final outputs are saved to disk. This way you don't mess up any of the intermediate code.
+
 -- nice later stuff
 Make a GUI to run tests easier. There could be radio buttons for each of the valid flags and a switch for starting fom a saved model. The switch could open a separate tab or something. There could be a built in console readout. I've done a bit of python gtk so it shouldn't be too difficult to hack something together.
 

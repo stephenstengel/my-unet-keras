@@ -26,6 +26,7 @@ from skimage.transform import resize
 from matplotlib import pyplot as plt
 from skimage.util import img_as_uint
 from skimage.util import img_as_bool
+from skimage.util import invert
 from skimage.color import rgb2gray
 
 
@@ -36,7 +37,7 @@ from keras import Model, callbacks
 from keras import backend
 
 # ~ autoinit stuff
-# ~ from autoinit import AutoInit
+from autoinit import AutoInit
 
 np.random.seed(55555)
 random.seed(55555)
@@ -61,6 +62,11 @@ GLOBAL_SMOOTH_DICE = 1
 
 IS_GLOBAL_PRINTING_ON = False
 # ~ IS_GLOBAL_PRINTING_ON = True
+
+GLOBAL_SQUARE_TEST_SAVE = True
+# ~ GLOBAL_SQUARE_TEST_SAVE = False
+
+GLOBAL_MAX_TEST_SQUARE_TO_SAVE = 66
 
 HELPFILE_PATH = "helpfile"
 OUT_TEXT_PATH = "accuracies-if-error-happens-lol"
@@ -197,19 +203,19 @@ def main(args):
 	rng2 = np.random.default_rng(54322)
 	
 	### MAGIC NUMBER ###
-	numToSave = 66
+	numToSave = GLOBAL_MAX_TEST_SQUARE_TO_SAVE
 	if len(modelOut) < numToSave:
 		numToSave = len(modelOut)
 	saveIndexes = rng2.integers(low = 0, high = len(modelOut), size = numToSave)
 	
-	#Here is where I could stitch together the four images.
-	#I could put jaccard and dice scores onto the stitched images!
-	for i in tqdm(saveIndexes):
-		imsave(predictionsFolder + "fig[" + str(i) + "]premask.png", modelOut[i])
-		imsave(predictionsFolder + "fig[" + str(i) + "]predict.png", binarizedOut[i])
-		imsave(predictionsFolder + "fig[" + str(i) + "]testimg.png", testImages[i])
-		imsave(predictionsFolder + "fig[" + str(i) + "]truthim.png", testTruths[i])
-	print("Done!")
+	#save copies of some of the squares used in learning.
+	if GLOBAL_SQUARE_TEST_SAVE:
+		for i in tqdm(saveIndexes):
+			imsave(predictionsFolder + "fig[" + str(i) + "]premask.png", modelOut[i])
+			imsave(predictionsFolder + "fig[" + str(i) + "]predict.png", binarizedOut[i])
+			imsave(predictionsFolder + "fig[" + str(i) + "]testimg.png", testImages[i])
+			imsave(predictionsFolder + "fig[" + str(i) + "]truthim.png", testTruths[i])
+		print("Done!")
 
 	testTruthsUInt = testTruths.astype(np.uint8)
 	
@@ -238,9 +244,10 @@ def main(args):
 		# ~ predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
 		# ~ print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
 		
+		premaskImg = predictedImage
 		predictedMask = createPredictionMask(wholeTruths[i], predictedImage)
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]mask.png", predictedMask)
-		
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]premask.png", premaskImg)
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", predictedImage)
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", wholeTruths[i])
 		predictionsList.append(predictedImage)
@@ -322,8 +329,17 @@ def updateGlobalNumSquares(newNumSquares):
 
 
 def performEvaluation(history, tmpFolder):
+	print("Performing evaluation...###############################################################")
+	print("history...")
+	print(history)
+	print("history.history...")
+	print(history.history)
+	
 	accuracy = history.history["acc"]
+	# ~ accuracy = history.history["jaccardIndex"] #####################################################
 	val_accuracy = history.history["val_acc"]
+	# ~ val_accuracy = history.history["val_jaccardIndex"]
+	
 	loss = history.history["loss"]
 	val_loss = history.history["val_loss"]
 	epochs = range(1, len(accuracy) + 1)
@@ -376,10 +392,16 @@ def createStandardUnet():
 	model = Model(inputs, output)
 	
 	# ~ autoinit test. Uncomment to add the autoinit thingy
-	# ~ model = AutoInit().initialize_model(model)
+	model = AutoInit().initialize_model(model)
 	
 	# ~ model.compile(optimizer = Adam(learning_rate=1e-4), loss='categorical_crossentropy',  metrics=["acc"])
-	model.compile(optimizer = "adam", loss = "binary_crossentropy",  metrics = ["acc"])
+	model.compile(
+			optimizer = "adam",
+			
+			loss = "binary_crossentropy",
+			# ~ loss = jaccardLoss,
+			metrics = ["acc"])
+			# ~ metrics = [jaccardIndex])
 	
 	
 	return model
@@ -470,9 +492,26 @@ def createTrainAndTestSets():
 	testImage, testTruth, wholeOriginals, wholeTruths = getImageAndTruth(testImageFileNames, testTruthFileNames)
 	testTruth = convertImagesToGrayscale(testTruth)
 	wholeTruths = convertImagesToGrayscaleList(wholeTruths)
+	
+	#invert the imported images. Tensorflow counts white as truth
+	#and black as false. I had been doing the inverse previously.
+	# ~ trainImages = invertImagesInArray(trainImages)
+	# ~ trainTruth = invertImagesInArray(trainTruth)
+	# ~ testImage = invertImagesInArray(testImage)
+	# ~ testTruth = invertImagesInArray(testTruth)
+	# ~ wholeOriginals = invertImagesInArray(wholeOriginals)
+	# ~ wholeTruths = invertImagesInArray(wholeTruths)
 
 	return trainImages, trainTruth, testImage, testTruth, wholeOriginals, wholeTruths
 
+
+#Inverts all the images in an array. returns an array.
+def invertImagesInArray(imgArray):
+	for i in range(len(imgArray)):
+		imgArray[i] = invert(imgArray[i])
+	
+	return imgArray
+	
 		
 #This function gets the source image, cuts it into smaller squares, then
 #adds each square to an array for output. The original image squares
