@@ -470,7 +470,7 @@ def decode(conv5, conv4, conv3, conv2, conv1):
 	conv8 = Dropout(0.1)(conv8)                    
 	conv8 = Conv2D(sfilter * 2, (3, 3), activation = 'relu', padding = "same")(conv8)
 	
-	up9 = Conv2DTranspose(16, (2, 2), strides = (2, 2), padding = "same")(conv8)
+	up9 = Conv2DTranspose(sfilter, (2, 2), strides = (2, 2), padding = "same")(conv8)
 	concat9 = Concatenate()([conv1,up9])
 	conv9 = Conv2D(sfilter, (3, 3), activation = 'relu', padding = "same")(concat9)
 	conv9 = Dropout(0.1)(conv9)                    
