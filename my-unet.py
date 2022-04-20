@@ -35,6 +35,8 @@ from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 from keras import backend
 
+from rezaunet import BCDU_net_D3
+
 # ~ autoinit stuff
 # ~ from autoinit import AutoInit
 
@@ -369,6 +371,7 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 	
 	#print("shape of trainImages: " + str(trainImages.shape))
 	standardUnetLol = createStandardUnet()
+	# ~ standardUnetLol = BCDU_net_D3( (GLOBAL_HACK_height, GLOBAL_HACK_width, IMAGE_CHANNELS) )
 	standardUnetLol.summary()
 	
 	# ~ earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 2)
