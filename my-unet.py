@@ -228,7 +228,7 @@ def main(args):
 			outFile.write(thisString)
 	print("Done!")
 	
-	
+	######################################################### whole section
 	print("Predicting output of whole images...")
 	if IS_GLOBAL_PRINTING_ON:
 		print("shape of wholeOriginals: " + str(np.shape(wholeOriginals)))
@@ -251,6 +251,7 @@ def main(args):
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", img_as_ubyte(predictedImage))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", img_as_ubyte(wholeTruths[i]))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]colormask.png", img_as_ubyte(coloredPrediction))
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]original.png", img_as_ubyte(wholeOriginals[i]))
 
 		predictionsList.append(predictedImage)
 	evaluatePredictionJaccardDice(predictionsList, wholeTruths, OUT_TEXT_PATH)
@@ -373,10 +374,11 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 	# ~ earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 2)
 	checkpointer = callbacks.ModelCheckpoint(
 			filepath = checkpointFolder,
-			monitor = "val_acc",
+			# ~ monitor = "val_acc", #current working version
+			
 			# ~ monitor = "val_loss", #original ##################################################
 			# ~ monitor = "val_jaccardIndex",
-			# ~ monitor = "jaccardIndex", ####### sorta worked. black output though.
+			monitor = "jaccardIndex", ####### sorta worked. black output though.
 			# ~ monitor = "val_jaccardLoss",
 			save_best_only = True,
 			mode = "max")
@@ -412,8 +414,6 @@ def createStandardUnet():
 			
 			loss = "binary_crossentropy",
 			# ~ loss = jaccardLoss,
-			# ~ metrics = ["acc"])
-			# ~ metrics = [jaccardIndex])
 			metrics = ["acc", jaccardIndex, diceIndex])
 	
 	
