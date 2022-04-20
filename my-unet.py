@@ -230,16 +230,18 @@ def main(args):
 	
 	
 	print("Predicting output of whole images...")
-	print("shape of wholeOriginals: " + str(np.shape(wholeOriginals)))
-	for i in range(len(wholeOriginals)):
-		print(str(np.shape(wholeOriginals[i])))
-	print("##########################################################")
-	print("shape of wholeTruths: " + str(np.shape(wholeTruths)))
+	if IS_GLOBAL_PRINTING_ON:
+		print("shape of wholeOriginals: " + str(np.shape(wholeOriginals)))
+		for i in range(len(wholeOriginals)):
+			print(str(np.shape(wholeOriginals[i])))
+		print("##########################################################")
+		print("shape of wholeTruths: " + str(np.shape(wholeTruths)))
 	predictionsList = []
 	for i in tqdm(range(len(wholeOriginals))):
 		# ~ wholeOriginals, wholeTruths
 		predictedImage = predictWholeImage(wholeOriginals[i], theModel, HACK_SIZE)
-		print("Shape of predicted image " + str(i) + ": " + str(np.shape(predictedImage)))
+		if IS_GLOBAL_PRINTING_ON:
+			print("Shape of predicted image " + str(i) + ": " + str(np.shape(predictedImage)))
 		# ~ predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
 		# ~ print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
 		
@@ -340,6 +342,7 @@ def performEvaluation(history, tmpFolder):
 	# ~ accuracy = history.history["jaccardIndex"] #####################################################
 	# ~ val_accuracy = history.history["val_jaccardIndex"]
 	jaccInd = history.history["jaccardIndex"] #####################################################
+	diceInd = history.history["diceIndex"] #####################################################
 	
 	loss = history.history["loss"]
 	val_loss = history.history["val_loss"]
@@ -347,6 +350,7 @@ def performEvaluation(history, tmpFolder):
 	plt.plot(epochs, accuracy, "o", label="Training accuracy")
 	plt.plot(epochs, val_accuracy, "^", label="Validation accuracy")
 	plt.plot(epochs, jaccInd, "*", label="Jaccard Index")
+	plt.plot(epochs, diceInd, "D", label="Dice Index")
 	plt.title("Training and validation accuracy")
 	plt.legend()
 	plt.savefig(tmpFolder + "trainvalacc.png")
@@ -410,7 +414,7 @@ def createStandardUnet():
 			# ~ loss = jaccardLoss,
 			# ~ metrics = ["acc"])
 			# ~ metrics = [jaccardIndex])
-			metrics = ["acc", jaccardIndex])
+			metrics = ["acc", jaccardIndex, diceIndex])
 	
 	
 	return model
@@ -614,7 +618,8 @@ def cutImageIntoSmallSquares(skImage):
 #trained model to predict the binarization of each, then stitches each
 #image back into a whole for output.
 def predictWholeImage(inputImage, theModel, squareSize):
-	print("squareSize: " + str(squareSize))
+	if IS_GLOBAL_PRINTING_ON:
+		print("squareSize: " + str(squareSize))
 	##get dimensions of the image
 	height, width, _ = inputImage.shape
 	##get the number of squares per row of the image
@@ -624,7 +629,8 @@ def predictWholeImage(inputImage, theModel, squareSize):
 	heightPlusBottomBumper = squaresHigh * squareSize
 	
 	#Dice the image into bits
-	print("shape of input Image right before dicing: " + str(np.shape(inputImage)))
+	if IS_GLOBAL_PRINTING_ON:
+		print("shape of input Image right before dicing: " + str(np.shape(inputImage)))
 	# ~ print("input Image right before dicing as string: " + str(inputImage))
 	dicedImage = cutImageIntoSmallSquares(inputImage)
 	# ~ print("shape of dicedImage right before hacking: " + str(np.shape(dicedImage)))
@@ -866,7 +872,8 @@ def createPredictionMask(truth, prediction):
 def colorPredictionWithPredictionMask(predictionMask, originalPrediction):
 	predictionMask = np.squeeze(predictionMask, axis = 2)
 	prediction = img_as_float(originalPrediction)
-	print("predictionMask shape: " + str(predictionMask.shape))
+	if IS_GLOBAL_PRINTING_ON:
+		print("predictionMask shape: " + str(predictionMask.shape))
 	rows, cols = predictionMask.shape
 
 	colorMask = np.zeros((rows, cols, 3))
