@@ -37,7 +37,7 @@ from keras import backend
 
 # ~ from rezaunet import BCDU_net_D3
 
-# ~ autoinit stuff
+## autoinit stuff
 # ~ from autoinit import AutoInit
 
 np.random.seed(55555)
@@ -247,12 +247,22 @@ def main(args):
 		# ~ predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
 		# ~ print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
 		
-		predictedMask = createPredictionMask(wholeTruths[i], predictedImage)
-		coloredPrediction = colorPredictionWithPredictionMask(predictedMask, predictedImage)
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]mask.png", img_as_ubyte(predictedMask))
+		truePosMask = createMaskTruePositive(wholeTruths[i], predictedImage)
+		trueNegMask = createMaskTrueNegative(wholeTruths[i], predictedImage)
+		falsePosMask = createMaskFalsePositive(wholeTruths[i], predictedImage)
+		redColor = [1, 0, 0]
+		greenColor = [0, 1, 0]
+		blueColor = [0, 0, 1]
+		truePosColor = colorPredictionWithPredictionMask(truePosMask, predictedImage, greenColor)
+		trueNegColor = colorPredictionWithPredictionMask(trueNegMask, predictedImage, redColor)
+		falsePosColor = colorPredictionWithPredictionMask(falsePosMask, predictedImage, blueColor)
+		
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]mask.png", img_as_ubyte(truePosMask)) ###I think hehe
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", img_as_ubyte(predictedImage))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", img_as_ubyte(wholeTruths[i]))
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]colormask.png", img_as_ubyte(coloredPrediction))
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]truepositive.png", img_as_ubyte(truePosColor))
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]truenegative.png", img_as_ubyte(trueNegColor))
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]falsepositive.png", img_as_ubyte(falsePosColor))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]original.png", img_as_ubyte(wholeOriginals[i]))
 
 		predictionsList.append(predictedImage)
@@ -852,27 +862,54 @@ def diceLoss(truth, prediction):
 	return smooth - diceIndex(truth, prediction)
 
 
-# ! ! Make sure it is complete for printing.
-def createPredictionMask(truth, prediction):
+#This creates a true positive mask from an inverted image (white pixels are text)
+def createMaskTruePositive(truth, prediction):
 	pFlat = backend.flatten(prediction)
-	# ~ pFlat = np.asarray(pFlat, dtype = "uint8")
 	pFlat = img_as_bool(pFlat)
 	tFlat = backend.flatten(truth)
 	tFlat = img_as_bool(tFlat)
-	
-	#this inverse was before I inversed at the start.
-	# ~ invPFlat = ~pFlat
-	# ~ invTFlat = ~tFlat
-	# ~ invMask = invPFlat * invTFlat
-	# ~ mask = ~invMask
-
 	mask = pFlat * tFlat
 	
 	return np.reshape(mask, np.shape(prediction))
 
 
+#creaes true negative mask
+def createMaskTrueNegative(truth, prediction):
+	pFlat = backend.flatten(prediction)
+	pFlat = img_as_bool(pFlat)
+	tFlat = backend.flatten(truth)
+	tFlat = img_as_bool(tFlat)
+	
+	##invert to make the 0 into ones
+	pFlat = ~pFlat
+	tFlat = ~tFlat
+	
+	##then multiply
+	mask = pFlat * tFlat
+	
+	return np.reshape(mask, np.shape(prediction))
+
+
+#Creates a mask for the False Positives
+def createMaskFalsePositive(truth, prediction):
+	pFlat = backend.flatten(prediction)
+	pFlat = img_as_bool(pFlat)
+	tFlat = backend.flatten(truth)
+	tFlat = img_as_bool(tFlat)
+	
+	#will I need these?
+	# ~ falseArray = np.zeros(len(pFlat), dtype = bool)
+	# ~ trueArray = np.ones(len(pFlat), dtype = bool)
+	
+	##where is the prediction true 1, where the truth is 0 false?
+	mask = np.where(pFlat > tFlat, True, False)
+	# ~ mask = np.where(pFlat > tFlat, pFlat, ~pFlat)
+	
+	return np.reshape(mask, np.shape(prediction))
+
+
 #Color the prediction image with the pixels that are correct in red.
-def colorPredictionWithPredictionMask(predictionMask, originalPrediction):
+def colorPredictionWithPredictionMask(predictionMask, originalPrediction, colorArray):
 	predictionMask = np.squeeze(predictionMask, axis = 2)
 	prediction = img_as_float(originalPrediction)
 	if IS_GLOBAL_PRINTING_ON:
@@ -880,7 +917,7 @@ def colorPredictionWithPredictionMask(predictionMask, originalPrediction):
 	rows, cols = predictionMask.shape
 
 	colorMask = np.zeros((rows, cols, 3))
-	colorMask[ predictionMask ] = [1, 0, 0]
+	colorMask[ predictionMask ] = colorArray
 	
 	predictionInColor = np.dstack((prediction, prediction, prediction))
 	
