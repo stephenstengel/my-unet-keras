@@ -924,17 +924,12 @@ def colorPredictionWithPredictionMask(predictionMask, originalPrediction, colorA
 	predictionColor_hsv = rgb2hsv(predictionInColor)
 	colorMask_hsv = rgb2hsv(colorMask)
 	
-	alpha = 0.6 ##?why?
+	# ~ alpha = 0.6 ##?why?
+	alpha = 1.0 ##?why?
 	predictionColor_hsv[..., 0] = colorMask_hsv[..., 0]
 	predictionColor_hsv[..., 1] = colorMask_hsv[..., 1] * alpha
 	
 	outImg = hsv2rgb(predictionColor_hsv)
-	
-	# ~ colorMask = predictionMask
-	# ~ red_multiplier = [1, 0, 0]
-	# ~ black_multiplier = [0, 0, 0]
-	
-	# ~ prediction =  red_multiplier * prediction
 	
 	return img_as_ubyte(outImg)
 
