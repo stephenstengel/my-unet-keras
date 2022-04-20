@@ -250,20 +250,27 @@ def main(args):
 		truePosMask = createMaskTruePositive(wholeTruths[i], predictedImage)
 		trueNegMask = createMaskTrueNegative(wholeTruths[i], predictedImage)
 		falsePosMask = createMaskFalsePositive(wholeTruths[i], predictedImage)
+		falseNegMask = createMaskFalseNegative(wholeTruths[i], predictedImage)
 		redColor = [1, 0, 0]
 		greenColor = [0, 1, 0]
 		blueColor = [0, 0, 1]
+		yellowColor = [1, 1, 0]
 		truePosColor = colorPredictionWithPredictionMask(truePosMask, predictedImage, greenColor)
-		trueNegColor = colorPredictionWithPredictionMask(trueNegMask, predictedImage, redColor)
+		trueNegColor = colorPredictionWithPredictionMask(trueNegMask, predictedImage, yellowColor)
 		falsePosColor = colorPredictionWithPredictionMask(falsePosMask, predictedImage, blueColor)
+		falseNegColor = colorPredictionWithPredictionMask(falseNegMask, predictedImage, redColor )
 		
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]mask.png", img_as_ubyte(truePosMask)) ###I think hehe
+		confusion = combinePredictionPicture(truePosMask, trueNegMask, falsePosMask, falseNegMask)
+		
+		# ~ imsave(wholePredictionsFolder + "img[" + str(i) + "]mask.png", img_as_ubyte(truePosMask)) ###I think hehe
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", img_as_ubyte(predictedImage))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", img_as_ubyte(wholeTruths[i]))
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]truepositive.png", img_as_ubyte(truePosColor))
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]truenegative.png", img_as_ubyte(trueNegColor))
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]falsepositive.png", img_as_ubyte(falsePosColor))
+		# ~ imsave(wholePredictionsFolder + "img[" + str(i) + "]truepositive.png", img_as_ubyte(truePosColor))
+		# ~ imsave(wholePredictionsFolder + "img[" + str(i) + "]truenegative.png", img_as_ubyte(trueNegColor))
+		# ~ imsave(wholePredictionsFolder + "img[" + str(i) + "]falsepositive.png", img_as_ubyte(falsePosColor))
+		# ~ imsave(wholePredictionsFolder + "img[" + str(i) + "]falsenegative.png", img_as_ubyte(falseNegColor))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]original.png", img_as_ubyte(wholeOriginals[i]))
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]confusion.png", img_as_ubyte(confusion))
 
 		predictionsList.append(predictedImage)
 	evaluatePredictionJaccardDice(predictionsList, wholeTruths, OUT_TEXT_PATH)
@@ -908,13 +915,30 @@ def createMaskFalsePositive(truth, prediction):
 	return np.reshape(mask, np.shape(prediction))
 
 
+#returns a mask of all the pixels that are not supposed to be false.
+def createMaskFalseNegative(truth, prediction):
+	# ~ return createMaskFalsePositive(prediction, truth) #Just swapped the input!?? yes but bug happens. 3-1
+	pFlat = backend.flatten(prediction)
+	pFlat = img_as_bool(pFlat)
+	tFlat = backend.flatten(truth)
+	tFlat = img_as_bool(tFlat)
+	
+	mask = np.where(pFlat < tFlat, True, False)
+	
+	return np.reshape(mask, np.shape(prediction))
+
+
 #Color the prediction image with the pixels that are correct in red.
 def colorPredictionWithPredictionMask(predictionMask, originalPrediction, colorArray):
+	prediction = img_as_bool(originalPrediction)
+	prediction = np.where( predictionMask >= prediction, True, False ) #This makes the area to paint to white.
+	prediction = img_as_float(prediction)
+	
 	predictionMask = np.squeeze(predictionMask, axis = 2)
-	prediction = img_as_float(originalPrediction)
 	if IS_GLOBAL_PRINTING_ON:
 		print("predictionMask shape: " + str(predictionMask.shape))
 	rows, cols = predictionMask.shape
+
 
 	colorMask = np.zeros((rows, cols, 3))
 	colorMask[ predictionMask ] = colorArray
@@ -924,14 +948,77 @@ def colorPredictionWithPredictionMask(predictionMask, originalPrediction, colorA
 	predictionColor_hsv = rgb2hsv(predictionInColor)
 	colorMask_hsv = rgb2hsv(colorMask)
 	
-	# ~ alpha = 0.6 ##?why?
-	alpha = 1.0 ##?why?
+	alpha = 1.0
 	predictionColor_hsv[..., 0] = colorMask_hsv[..., 0]
 	predictionColor_hsv[..., 1] = colorMask_hsv[..., 1] * alpha
 	
 	outImg = hsv2rgb(predictionColor_hsv)
 	
 	return img_as_ubyte(outImg)
+
+
+def combinePredictionPicture(truePosMask, trueNegMask, falsePosMask, falseNegMask):
+	redColor = [1, 0, 0]
+	greenColor = [0, 1, 0]
+	blueColor = [0, 0, 1]
+	yellowColor = [1, 1, 0]
+	
+	truePosMask = np.squeeze(truePosMask, axis = 2)
+	trueNegMask = np.squeeze(trueNegMask, axis = 2)
+	falsePosMask = np.squeeze(falsePosMask, axis = 2)
+	falseNegMask = np.squeeze(falseNegMask, axis = 2)
+	
+	##make a numpy array of ONES, reshape to image size, then convert with imgtofloat
+	print("truePosMask.shape: " + str(truePosMask.shape))
+	rows, cols = truePosMask.shape
+	# ~ prediction = np.ones( (rows, cols), dtype=bool )
+	prediction = np.zeros( (rows, cols), dtype=bool )
+	# ~ prediction = img_as_float(prediction)
+	predictionRGB = np.dstack((prediction, prediction, prediction))
+	# ~ predictionColor_hsv = rgb2hsv(predictionRGB)
+	
+	## make the four color masks
+	redColorMask = img_as_bool(falseNegMask)
+	blueColorMask = img_as_bool(falsePosMask)
+	greenColorMask = img_as_bool(truePosMask)
+	yellowColorMask = img_as_bool(trueNegMask)
+	
+	predictionRGB[redColorMask, 0 ] = 1
+	predictionRGB[greenColorMask, 1 ] = 1
+	predictionRGB[blueColorMask, 2 ] = 1
+	predictionRGB[yellowColorMask, 0 ] = 1
+	predictionRGB[yellowColorMask, 1 ] = 1
+	
+	# ~ green_image = rgb_image.copy() # Make a copy
+	# ~ green_image[:,:,0] = 0
+	# ~ green_image[:,:,2] = 0
+	
+	# ~ alpha = 1.0
+	# ~ predictionColor_hsv[..., 0] = redColorMask[..., 0]
+	# ~ predictionColor_hsv[..., 1] = redColorMask[..., 1] * alpha
+	# ~ predictionColor_hsv[..., 0] = blueColorMask[..., 0]
+	# ~ predictionColor_hsv[..., 1] = blueColorMask[..., 1] * alpha
+	# ~ predictionColor_hsv[..., 0] = greenColorMask[..., 0]
+	# ~ predictionColor_hsv[..., 1] = greenColorMask[..., 1] * alpha
+	# ~ predictionColor_hsv[..., 0] = yellowColorMask[..., 0]
+	# ~ predictionColor_hsv[..., 1] = yellowColorMask[..., 1] * alpha
+	# ~ outImg = hsv2rgb(predictionColor_hsv)
+	
+	# ~ return img_as_ubyte(outImg)
+	return img_as_ubyte(predictionRGB)
+
+
+def makeThisColorMaskHsv(predictionMask, colorArray, rows, cols):
+	thisColorMask = np.zeros((rows, cols, 3))
+	thisColorMask[ predictionMask ] = colorArray
+
+	return rgb2hsv(thisColorMask)
+
+def makeThisColorMaskRGB(predictionMask, colorArray, rows, cols):
+	thisColorMask = np.zeros((rows, cols, 3))
+	thisColorMask[ predictionMask ] = colorArray
+
+	return thisColorMask
 
 
 if __name__ == '__main__':
