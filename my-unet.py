@@ -80,6 +80,65 @@ def main(args):
 	checkArgs(args)
 	
 	print("Creating folders to store results...")
+	tmpFolder, trainingFolder, checkpointFolder, savedModelFolder, \
+			predictionsFolder, wholePredictionsFolder, outTextPath \
+			= createFolders()
+	print("Done!")
+	
+	print("Creating copy of source code and conda environment...")
+	copySourceEnv(tmpFolder)
+	print("Done!")
+
+	print("Creating train and test sets...")
+	trainImages, trainTruth, testImages, testTruths, wholeOriginals, wholeTruths = createTrainAndTestSets()
+	print("Done!")
+	
+	#Images not currently called from disk. Commenting for speed testing.
+	# ~ saveExperimentImages(trainImages, trainTruth, testImages, testTruths, trainingFolder)
+
+	if IS_GLOBAL_PRINTING_ON:
+		mainTestPrintOne(wholeOriginals, wholeTruths, trainImages, trainTruth, testImages, testTruths)
+
+	trainImages, trainTruth, testImages, testTruths \
+			= reduceInputForTesting(trainImages, trainTruth, testImages, testTruths, NUM_SQUARES)
+
+	theModel, theHistory = trainUnet(trainImages, trainTruth, checkpointFolder)
+
+	print("Saving model...")
+	theModel.save(savedModelFolder + "saved-model.h5")
+	print("Done!")
+
+	
+	performEvaluation(theHistory, tmpFolder, testImages, testTruths, theModel)
+	
+	print("shape of testImages right before predict: " + str(np.shape(testImages)))
+	modelOut = theModel.predict(testImages)
+	binarizedOut = ((modelOut > 0.5).astype(np.uint8) * 255).astype(np.uint8) #######test this thing more
+	
+	if GLOBAL_SQUARE_TEST_SAVE:
+		saveTestSquares(
+				GLOBAL_MAX_TEST_SQUARE_TO_SAVE, modelOut, \
+				binarizedOut, testImages, testTruths, predictionsFolder)
+
+
+	calculateJaccardDiceTestSquares(testTruths, outTextPath, binarizedOut)
+
+	
+	print("Predicting output of whole images...")
+	#currently also does the image processing and saving.
+	predictionsList = predictAllWholeImages(wholeOriginals, wholeTruths, theModel, HACK_SIZE, wholePredictionsFolder)
+	
+	######################################################### whole section
+
+	evaluatePredictionJaccardDice(predictionsList, wholeTruths, outTextPath)
+
+	print("Done!")
+	
+	
+	return 0
+
+
+def createFolders():
 	sq = str(NUM_SQUARES)
 	hk = str(HACK_SIZE)
 	ep = str(GLOBAL_EPOCHS)
@@ -97,57 +156,23 @@ def main(args):
 	os.system("mkdir -p " + wholePredictionsFolder)
 	global OUT_TEXT_PATH
 	OUT_TEXT_PATH = tmpFolder + "accuracy-jaccard-dice.txt"
-	print("Done!")
 	
-	print("Creating copy of source code...")
-	os.system("cp my-unet.py " + tmpFolder + "my-unet.py") # how get filename?
-	print("Done!")
+	return tmpFolder, trainingFolder, checkpointFolder, savedModelFolder, predictionsFolder, wholePredictionsFolder, OUT_TEXT_PATH
 
-	print("Creating copy of environment...")
+
+def copySourceEnv(tmpFolder):
+	os.system("cp my-unet.py " + tmpFolder + "my-unet.py") # how get filename?
 	os.system("cp working-conda-config.yml  " + tmpFolder + "working-conda-config.yml")
-	print("Done!")
 
 	#This would be preferred in the final product.
 	# ~ print("Creating current copy of environment...")
 	# ~ os.system("conda env export >  " + tmpFolder + "working-conda-config-current.yml")
 	# ~ print("Done!")
-	
-	print("Creating train and test sets...")
-	trainImages, trainTruth, testImages, testTruths, wholeOriginals, wholeTruths = createTrainAndTestSets()
-	print("Done!")
-	
-	print("shape of wholeOriginals: " + str(np.shape(wholeOriginals)))
-	print("shape of wholeTruths: " + str(np.shape(wholeTruths)))
-	
-	#Images not currently called from disk. Commenting for speed testing.
-	# ~ saveExperimentImages(trainImages, trainTruth, testImages, testTruths, trainingFolder)
 
-	if IS_GLOBAL_PRINTING_ON:
-		print("shape of trainImages: " + str(np.shape(trainImages)))
-		print("shape of trainTruth: " + str(np.shape(trainTruth)))
-		print("shape of testImages: " + str(np.shape(testImages)))
-		print("shape of testTruths: " + str(np.shape(testTruths)))
-		print("Showing Training stuff...")
-		randomBoy = random.randint(0, len(trainImages) - 1)
-		print("image " + str(randomBoy) + "...")
-		imshow(trainImages[randomBoy] / 255)
-		plt.show()
-		print("truth " + str(randomBoy) + "...")
-		imshow(np.squeeze(trainTruth[randomBoy]))
-		plt.show()
-		
-		print("Showing Testing stuff...")
-		randomBoy = random.randint(0, len(testImages) - 1)
-		print("image " + str(randomBoy) + "...")
-		imshow(testImages[randomBoy] / 255)
-		plt.show()
-		print("truth " + str(randomBoy) + "...")
-		imshow(np.squeeze(testTruths[randomBoy]))
-		plt.show()
 
+def reduceInputForTesting(trainImages, trainTruth, testImages, testTruths, sizeOfSet ):
 	#This block reduces the input for testing.
 	highIndex = len(trainImages)
-	sizeOfSet = NUM_SQUARES
 	if sizeOfSet > highIndex + 1: #Just in case user enters more squares than exist.
 		sizeOfSet = highIndex + 1
 		print("! Limiting size of squares for training to actual number of squares !")
@@ -172,66 +197,69 @@ def main(args):
 	print("There are " + str(len(trainImages)) + " training images.")
 	print("There are " + str(len(testImages)) + " testing images.")
 
-	theModel, theHistory = trainUnet(trainImages, trainTruth, checkpointFolder)
+	return trainImages, trainTruth, testImages, testTruths
 
-	print("Saving model...")
-	theModel.save(savedModelFolder + "saved-model.h5")
-	print("Done!")
-	print("Calculating scores...")
-	print("len testImages: " + str(len(testImages)))
-	scores = theModel.evaluate(testImages, testTruths)
-	print("Done!")
-	print("Scores object: " + str(scores))
+
+def mainTestPrintOne(wholeOriginals, wholeTruths, trainImages, trainTruth, testImages, testTruths):
+	print("shape of wholeOriginals: " + str(np.shape(wholeOriginals)))
+	print("shape of wholeTruths: " + str(np.shape(wholeTruths)))
+	print("shape of trainImages: " + str(np.shape(trainImages)))
+	print("shape of trainTruth: " + str(np.shape(trainTruth)))
+	print("shape of testImages: " + str(np.shape(testImages)))
+	print("shape of testTruths: " + str(np.shape(testTruths)))
+	print("Showing Training stuff...")
+	randomBoy = random.randint(0, len(trainImages) - 1)
+	print("image " + str(randomBoy) + "...")
+	imshow(trainImages[randomBoy] / 255)
+	plt.show()
+	print("truth " + str(randomBoy) + "...")
+	imshow(np.squeeze(trainTruth[randomBoy]))
+	plt.show()
 	
-	print(str(theHistory.history))
-	print("%s: %.2f%%" % (theModel.metrics_names[1], scores[1]*100))
-	
-	performEvaluation(theHistory, tmpFolder)
-	
-	randNum = random.randint(0, len(testImages) - 1)
-	print("shape of testImages right before predict: " + str(np.shape(testImages)))
-	# ~ print("good testImages right before predict as string: " + str(testImages))
-	modelOut = theModel.predict(testImages)
-	
-	#Still get warning messages so far
-	binarizedOut = ((modelOut > 0.5).astype(np.uint8) * 255).astype(np.uint8) #######test this thing more
-	#I found another way. Make a mask of the image
-	# ~ mask = modelOut <= 0.5
-	# ~ whiteSquareOfSameSize[mask] = 0
-	#This should also get rid of the weird conversion warnings because it's an all new image.
-	
+	print("Showing Testing stuff...")
+	randomBoy = random.randint(0, len(testImages) - 1)
+	print("image " + str(randomBoy) + "...")
+	imshow(testImages[randomBoy] / 255)
+	plt.show()
+	print("truth " + str(randomBoy) + "...")
+	imshow(np.squeeze(testTruths[randomBoy]))
+	plt.show()
+
+
+#save copies of some of the squares used in learning.
+def saveTestSquares(numToSave, modelOut, binarizedOut, testImages, testTruths, predictionsFolder):
 	print("Saving random sample of figures...")
 	rng2 = np.random.default_rng(54322)
 	
-	### MAGIC NUMBER ###
-	numToSave = GLOBAL_MAX_TEST_SQUARE_TO_SAVE
 	if len(modelOut) < numToSave:
 		numToSave = len(modelOut)
 	saveIndexes = rng2.integers(low = 0, high = len(modelOut), size = numToSave)
 	
-	#save copies of some of the squares used in learning.
-	if GLOBAL_SQUARE_TEST_SAVE:
-		for i in tqdm(saveIndexes):
-			imsave(predictionsFolder + "fig[" + str(i) + "]premask.png", img_as_ubyte(modelOut[i]))
-			imsave(predictionsFolder + "fig[" + str(i) + "]predict.png", img_as_ubyte(binarizedOut[i]))
-			imsave(predictionsFolder + "fig[" + str(i) + "]testimg.png", img_as_ubyte(testImages[i]))
-			imsave(predictionsFolder + "fig[" + str(i) + "]truthim.png", img_as_ubyte(testTruths[i]))
-		print("Done!")
 
+	for i in tqdm(saveIndexes):
+		imsave(predictionsFolder + "fig[" + str(i) + "]premask.png", img_as_ubyte(modelOut[i]))
+		imsave(predictionsFolder + "fig[" + str(i) + "]predict.png", img_as_ubyte(binarizedOut[i]))
+		imsave(predictionsFolder + "fig[" + str(i) + "]testimg.png", img_as_ubyte(testImages[i]))
+		imsave(predictionsFolder + "fig[" + str(i) + "]truthim.png", img_as_ubyte(testTruths[i]))
+	print("Done!")
+
+
+def calculateJaccardDiceTestSquares(testTruths, outTextPath, binarizedOut):
 	testTruthsUInt = testTruths.astype(np.uint8)
 	
 	#Testing the jaccard and dice functions
 	print("Calculating jaccard and dice...")
-	with open(OUT_TEXT_PATH + "testsquares", "w") as outFile:
+	with open(outTextPath + "testsquares", "w") as outFile:
 		for i in tqdm(range(len(binarizedOut))):
 			jac = jaccardIndex(testTruthsUInt[i], binarizedOut[i])
 			dice = diceIndex(testTruthsUInt[i], binarizedOut[i])
 			thisString = str(i) + "\tjaccard: " + str(jac) + "\tdice: " + str(dice) + "\n"
 			outFile.write(thisString)
 	print("Done!")
-	
-	######################################################### whole section
-	print("Predicting output of whole images...")
+
+
+#currently also does the image processing and saving.
+def predictAllWholeImages(wholeOriginals, wholeTruths, theModel, squareSize, wholePredictionsFolder):
 	if IS_GLOBAL_PRINTING_ON:
 		print("shape of wholeOriginals: " + str(np.shape(wholeOriginals)))
 		for i in range(len(wholeOriginals)):
@@ -241,7 +269,7 @@ def main(args):
 	predictionsList = []
 	for i in tqdm(range(len(wholeOriginals))):
 		# ~ wholeOriginals, wholeTruths
-		predictedImage = predictWholeImage(wholeOriginals[i], theModel, HACK_SIZE)
+		predictedImage = predictWholeImage(wholeOriginals[i], theModel, squareSize)
 		if IS_GLOBAL_PRINTING_ON:
 			print("Shape of predicted image " + str(i) + ": " + str(np.shape(predictedImage)))
 		# ~ predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
@@ -273,18 +301,14 @@ def main(args):
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]confusion.png", img_as_ubyte(confusion))
 
 		predictionsList.append(predictedImage)
-	evaluatePredictionJaccardDice(predictionsList, wholeTruths, OUT_TEXT_PATH)
-
-	print("Done!")
 	
-	
-	return 0
+	return predictionsList
 
 
 
-def evaluatePredictionJaccardDice(predictionsList, wholeTruths, OUT_TEXT_PATH):
+def evaluatePredictionJaccardDice(predictionsList, wholeTruths, outTextPath):
 	print("Calculating jaccard and dice...")
-	with open(OUT_TEXT_PATH, "w") as outFile:
+	with open(outTextPath, "w") as outFile:
 		for i in tqdm(range(len(predictionsList))):
 			thisTruth = np.asarray(wholeTruths[i])
 			thisTruth = thisTruth.astype(np.uint8)
@@ -350,8 +374,19 @@ def updateGlobalNumSquares(newNumSquares):
 		NUM_SQUARES = newNumSquares
 
 
-def performEvaluation(history, tmpFolder):
+def performEvaluation(history, tmpFolder, testImages, testTruths, theModel):
 	print("Performing evaluation...###############################################################")
+	
+	print("Calculating scores...")
+	print("len testImages: " + str(len(testImages)))
+	scores = theModel.evaluate(testImages, testTruths)
+	print("Done!")
+	print("Scores object: " + str(scores))
+	
+	print(str(history.history))
+	print("%s: %.2f%%" % (theModel.metrics_names[1], scores[1]*100))
+	
+	
 	print("history...")
 	print(history)
 	print("history.history...")
@@ -969,7 +1004,7 @@ def combinePredictionPicture(truePosMask, trueNegMask, falsePosMask, falseNegMas
 	falseNegMask = np.squeeze(falseNegMask, axis = 2)
 	
 	##make a numpy array of ONES, reshape to image size, then convert with imgtofloat
-	print("truePosMask.shape: " + str(truePosMask.shape))
+	# ~ print("truePosMask.shape: " + str(truePosMask.shape))
 	rows, cols = truePosMask.shape
 	# ~ prediction = np.ones( (rows, cols), dtype=bool )
 	prediction = np.zeros( (rows, cols), dtype=bool )

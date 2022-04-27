@@ -1,4 +1,14 @@
 TODO
+
+Helper functions.
+
+use this to map the image cutting directly into the model: https://stackoverflow.com/questions/64326029/load-tensorflow-images-and-create-patches
+
+ROC/auc curve stuff
+
+k folds loop wrapped around the whole program basically.
+
+
 Clean up the code to merge to main
 
 Fix background / foreground accuracy thing. The model currently marks background as true and checks accuracy from that instead of looking at the text.
