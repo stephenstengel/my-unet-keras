@@ -577,7 +577,8 @@ def createStandardUnet():
 	# ~ model.compile(optimizer = Adam(learning_rate=1e-4), loss='categorical_crossentropy',  metrics=["acc"])
 	model.compile(
 			# ~ optimizer = "adam",
-			optimizer = Adam(),
+			# ~ optimizer = Adam(),
+			optimizer = tf.keras.optimizers.Adam(),
 			
 			# ~ loss = "binary_crossentropy",
 			loss = "categorical_crossentropy",
