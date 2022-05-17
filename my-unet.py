@@ -27,6 +27,7 @@ from matplotlib import pyplot as plt
 from skimage.util import img_as_bool, img_as_float, img_as_uint, img_as_ubyte
 from skimage.util import invert
 from skimage.color import rgb2gray, gray2rgb, rgb2hsv, hsv2rgb
+from sklearn.metrics import auc
 
 
 import tensorflow as tf
@@ -64,8 +65,8 @@ GLOBAL_SMOOTH_DICE = 1
 IS_GLOBAL_PRINTING_ON = False
 # ~ IS_GLOBAL_PRINTING_ON = True
 
-GLOBAL_SQUARE_TEST_SAVE = True
-# ~ GLOBAL_SQUARE_TEST_SAVE = False
+# ~ GLOBAL_SQUARE_TEST_SAVE = True
+GLOBAL_SQUARE_TEST_SAVE = False
 
 GLOBAL_MAX_TEST_SQUARE_TO_SAVE = 66
 
@@ -119,17 +120,26 @@ def main(args):
 		saveTestSquares(
 				GLOBAL_MAX_TEST_SQUARE_TO_SAVE, modelOut, \
 				binarizedOut, testImages, testTruths, predictionsFolder)
+	else:
+		print("Not saving test square pictures this time.")
 
-
+	print("Calculating jaccard and dice for the test squares...")
 	calculateJaccardDiceTestSquares(testTruths, outTextPath, binarizedOut)
-
 	
 	print("Predicting output of whole images...")
 	#currently also does the image processing and saving.
 	predictionsList = predictAllWholeImages(wholeOriginals, wholeTruths, theModel, HACK_SIZE, wholePredictionsFolder)
 	
-	######################################################### whole section
-
+	print("Creating confusion masks...")
+	confusionImages, tpList, fpList, tnList, fnList \
+			= createConfusionImageList(predictionsList, wholeOriginals, wholeTruths)
+	print("Saving whole image predictions and confusion images...")
+	saveAllWholeAndConfusion(predictionsList, wholeOriginals, wholeTruths, confusionImages, wholePredictionsFolder)
+	
+	print("Creating ROC graph of the whole images test...")
+	createROC(tpList, fpList, tnList, fnList, tmpFolder)
+	
+	print("Evaluating jaccard and dice scores...")
 	evaluatePredictionJaccardDice(predictionsList, wholeTruths, outTextPath)
 
 	print("Done!")
@@ -248,7 +258,6 @@ def calculateJaccardDiceTestSquares(testTruths, outTextPath, binarizedOut):
 	testTruthsUInt = testTruths.astype(np.uint8)
 	
 	#Testing the jaccard and dice functions
-	print("Calculating jaccard and dice...")
 	with open(outTextPath + "testsquares", "w") as outFile:
 		for i in tqdm(range(len(binarizedOut))):
 			jac = jaccardIndex(testTruthsUInt[i], binarizedOut[i])
@@ -275,10 +284,30 @@ def predictAllWholeImages(wholeOriginals, wholeTruths, theModel, squareSize, who
 		# ~ predictedImage = ((predictedImage > 0.5).astype(np.uint8) * 255).astype(np.uint8) ## jank thing again
 		# ~ print("Shape of predicted image " + str(i) + " after mask: " + str(np.shape(predictedImage)))
 		
+		predictionsList.append(predictedImage)
+	
+	return predictionsList
+
+
+#This could be split up a bit as well.
+#also outputs the binary masks in lists !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! change later
+def createConfusionImageList(predictionsList, wholeOriginals, wholeTruths):
+	confusionList = []
+	tpList = []
+	fpList = []
+	tnList = []
+	fnList = []
+	for i in tqdm(range(len(predictionsList))):
+		predictedImage = predictionsList[i]
 		truePosMask = createMaskTruePositive(wholeTruths[i], predictedImage)
+		tpList.append(truePosMask)
 		trueNegMask = createMaskTrueNegative(wholeTruths[i], predictedImage)
+		tnList.append(trueNegMask)
 		falsePosMask = createMaskFalsePositive(wholeTruths[i], predictedImage)
+		fpList.append(falsePosMask)
 		falseNegMask = createMaskFalseNegative(wholeTruths[i], predictedImage)
+		fnList.append(falseNegMask)
+
 		redColor = [1, 0, 0]
 		greenColor = [0, 1, 0]
 		blueColor = [0, 0, 1]
@@ -289,21 +318,99 @@ def predictAllWholeImages(wholeOriginals, wholeTruths, theModel, squareSize, who
 		falseNegColor = colorPredictionWithPredictionMask(falseNegMask, predictedImage, redColor )
 		
 		confusion = combinePredictionPicture(truePosMask, trueNegMask, falsePosMask, falseNegMask)
-		
-		# ~ imsave(wholePredictionsFolder + "img[" + str(i) + "]mask.png", img_as_ubyte(truePosMask)) ###I think hehe
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", img_as_ubyte(predictedImage))
+		confusionList.append(confusion)
+
+	return confusionList, tpList, fpList, tnList, fnList
+
+
+def saveAllWholeAndConfusion(predictionsList, wholeOriginals, wholeTruths, confusions, wholePredictionsFolder):
+	for i in tqdm(range(len(predictionsList))):
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", img_as_ubyte(predictionsList[i]))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", img_as_ubyte(wholeTruths[i]))
-		# ~ imsave(wholePredictionsFolder + "img[" + str(i) + "]truepositive.png", img_as_ubyte(truePosColor))
-		# ~ imsave(wholePredictionsFolder + "img[" + str(i) + "]truenegative.png", img_as_ubyte(trueNegColor))
-		# ~ imsave(wholePredictionsFolder + "img[" + str(i) + "]falsepositive.png", img_as_ubyte(falsePosColor))
-		# ~ imsave(wholePredictionsFolder + "img[" + str(i) + "]falsenegative.png", img_as_ubyte(falseNegColor))
 		imsave(wholePredictionsFolder + "img[" + str(i) + "]original.png", img_as_ubyte(wholeOriginals[i]))
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]confusion.png", img_as_ubyte(confusion))
+		imsave(wholePredictionsFolder + "img[" + str(i) + "]confusion.png", img_as_ubyte(confusions[i]))
 
-		predictionsList.append(predictedImage)
+
+def createROC(tpList, fpList, tnList, fnList, tmpFolder):
+	#convert each list of masks into a list of percentages.
+	tpScores = getPercentTrueFromMaskList(tpList)
+	fpScores = getPercentTrueFromMaskList(fpList)
 	
-	return predictionsList
+	#not currently needed
+	# ~ tnScores = getPercentTrueFromMaskList(tnList[i])
+	# ~ fnScores = getPercentTrueFromMaskList(fnList[i])
+	
+	plotROCandSave(fpScores, tpScores, tmpFolder)
 
+
+def plotROCandSave(fpList, tpList, tmpFolder):
+	
+	# ~ [x for (y,x) in sorted(zip(Y,X), key=lambda pair: pair[0])]
+	
+	fpArray = np.asarray(fpList)
+	tpArray = np.asarray(tpList)
+	
+	indexesSorted = fpArray.argsort()
+	
+	fpArray = fpArray[indexesSorted]
+	tpArray = tpArray[indexesSorted]
+	
+	print("fpArray: " + str(fpArray))
+	print("tpArray: " + str(tpArray))
+	
+	# ~ print("fpArray: " + str(fpArray))
+	# ~ print("tpArray: " + str(tpArray))
+	
+	roc_auc = auc(fpArray, tpArray)
+	print("contents of roc_auc: " + str(roc_auc))
+	
+	# ~ for thing in roc_auc:
+		# ~ print(thing)
+	# ~ print("##")
+
+	linewidth = 2
+
+	plt.figure()
+	plt.plot(
+		fpArray,
+		tpArray,
+		color="darkorange",
+		linewidth = linewidth,
+		label="ROC curve (area = %0.2f%%)" % roc_auc,
+		# ~ label = "ROC curve"
+	)
+	plt.plot([0, 1], [0, 1], color="navy", linewidth=linewidth, linestyle="--")
+	plt.xlim([0.0, 1.0])
+	# ~ plt.ylim([0.0, 1.0])
+	plt.ylim([0.0, 1.05])
+	plt.xlabel("False Positive Rate")
+	plt.ylabel("True Positive Rate")
+	plt.title("ROC curve !")
+	plt.legend(loc="lower right")
+	plt.savefig(tmpFolder + "roc-curve.png")
+	plt.show()
+
+
+def getPercentTrueFromMaskList(inList):
+	scoreList = []
+	for i in tqdm(range(len(inList))):
+		scoreList.append( getPercentTrueFromMask(inList[i]))
+	
+	return scoreList
+
+
+
+######################################################### I actually don't need percent. I neet TPRa and FPR (tp, fp, tn, fn) ##########################
+def getPercentTrueFromMask(inMask):
+	# ~ mFlat = backend.flatten( img_as_uint(inMask) )
+	# ~ numTrue = backend.sum(mFlat)
+	mFlat = np.asarray(inMask).flatten()
+	numTrue = np.sum(mFlat)
+	
+	# ~ mFlat = np.asarray(mFlat)
+	totalNum = mFlat.size
+	
+	return numTrue / totalNum
 
 
 def evaluatePredictionJaccardDice(predictionsList, wholeTruths, outTextPath):
@@ -433,7 +540,7 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 			
 			# ~ monitor = "val_loss", #original ##################################################
 			# ~ monitor = "val_jaccardIndex",
-			monitor = "jaccardIndex", ####### sorta worked. black output though.
+			monitor = "jaccardIndex",
 			# ~ monitor = "val_jaccardLoss",
 			save_best_only = True,
 			mode = "max")
