@@ -191,16 +191,18 @@ def reduceInputForTesting(trainImages, trainTruth, testImages, testTruths, sizeO
 
 	# ~ rng = np.random.default_rng(12345)
 	
-	pickIndexes = rng.integers(low = 0, high = highIndex, size = sizeOfSet)
+	# ~ pickIndexes = rng.integers(low = 0, high = highIndex, size = sizeOfSet)
+	pickIndexes = np.random.randint(low = 0, high = highIndex, size = sizeOfSet)
 	trainImages = trainImages[pickIndexes]
 	trainTruth = trainTruth[pickIndexes]
 	
 	sizeOfTestSet = sizeOfSet
 	if sizeOfTestSet > len(testImages):
 		sizeOfTestSet = len(testImages)
-	rng = np.random.default_rng(23456)
+	# ~ rng = np.random.default_rng(23456)
 	print("sizeOfTestSet: " + str(sizeOfTestSet))
-	pickIndexes = rng.integers(low = 0, high = len(testImages), size = sizeOfTestSet)
+	# ~ pickIndexes = rng.integers(low = 0, high = len(testImages), size = sizeOfTestSet)
+	pickIndexes = np.random.randint(low = 0, high = len(testImages), size = sizeOfTestSet)
 	testImages = testImages[pickIndexes]
 	testTruths = testTruths[pickIndexes]
 	
@@ -239,11 +241,12 @@ def mainTestPrintOne(wholeOriginals, wholeTruths, trainImages, trainTruth, testI
 #save copies of some of the squares used in learning.
 def saveTestSquares(numToSave, modelOut, binarizedOut, testImages, testTruths, predictionsFolder):
 	print("Saving random sample of figures...")
-	rng2 = np.random.default_rng(54322)
+	# ~ rng2 = np.random.default_rng(54322)
 	
 	if len(modelOut) < numToSave:
 		numToSave = len(modelOut)
-	saveIndexes = rng2.integers(low = 0, high = len(modelOut), size = numToSave)
+	# ~ saveIndexes = rng2.integers(low = 0, high = len(modelOut), size = numToSave)
+	saveIndexes = np.random.randint(low = 0, high = len(modelOut), size = numToSave)
 	
 
 	for i in tqdm(saveIndexes):
