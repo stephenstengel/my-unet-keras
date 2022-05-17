@@ -30,7 +30,11 @@ conda env list
 Command that I used to make my environment: 
 conda create --name myunet tensorflow keras numpy Pillow tqdm scikit-learn scikit-image matplotlib
 
-Update/Install from a different repositiory (aka channel)
+Install a different channel:
+conda config --add channels newChannel
+conda config --add channels conda-forge
+
+Update/Install from a different channel (aka repository)
 conda update --channel other-repository mypackage
 
 Stephen Stengel <stephen.stengel@cwu.edu> 2022 MIT LICENSE

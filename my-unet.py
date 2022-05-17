@@ -189,7 +189,7 @@ def reduceInputForTesting(trainImages, trainTruth, testImages, testTruths, sizeO
 	print("Number of squares to be used for training: " + str(sizeOfSet))
 	updateGlobalNumSquares(sizeOfSet)
 
-	rng = np.random.default_rng(12345)
+	# ~ rng = np.random.default_rng(12345)
 	
 	pickIndexes = rng.integers(low = 0, high = highIndex, size = sizeOfSet)
 	trainImages = trainImages[pickIndexes]
@@ -533,6 +533,8 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 	# ~ standardUnetLol = BCDU_net_D3( (GLOBAL_HACK_height, GLOBAL_HACK_width, IMAGE_CHANNELS) )
 	standardUnetLol.summary()
 	
+	# ~ tf.keras.utils.plot_model(standardUnetLol, "myModel.png")
+	
 	# ~ earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 2)
 	checkpointer = callbacks.ModelCheckpoint(
 			filepath = checkpointFolder,
@@ -574,7 +576,9 @@ def createStandardUnet():
 			# ~ optimizer = "adam",
 			optimizer = Adam(),
 			
-			loss = "binary_crossentropy",
+			# ~ loss = "binary_crossentropy",
+			loss = "categorical_crossentropy",
+			# ~ loss = "sparse_categorical_crossentropy", #this matches the truth images. arrays of ints. NOT ONE HOT
 			# ~ loss = jaccardLoss,
 			metrics = ["acc", jaccardIndex, diceIndex])
 	
