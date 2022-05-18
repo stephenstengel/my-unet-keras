@@ -562,7 +562,7 @@ def saveGraphNumbers(array, epochs, nameString, tmpFolder):
 	if not os.path.isdir(outFolder):
 		os.makedirs(outFolder)
 
-	with open(os.path.join(outFolder, nameString + ".txt")) as statFile:
+	with open(os.path.join(outFolder, nameString + ".txt"), "w") as statFile:
 		statFile.write(nameString + " over " + str(epochs) + "epochs" + "\n")
 		for thing in array:
 			statFile.write(str(thing) + "\n")
