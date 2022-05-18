@@ -592,7 +592,8 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 			mode = "max", \
 			#not sure about resotre weights...
 			restore_best_weights = True)
-	callbacks_list = [earlyStopper, checkpointer]
+	# ~ callbacks_list = [earlyStopper, checkpointer]
+	callbacks_list = [checkpointer]
 	
 	myHistory = standardUnetLol.fit(
 			x = trainImages,
