@@ -502,40 +502,34 @@ def performEvaluation(history, tmpFolder, testImages, testTruths, theModel):
 	print(str(history.history))
 	print("%s: %.2f%%" % (theModel.metrics_names[1], scores[1]*100))
 	
-	
 	print("history...")
 	print(history)
 	print("history.history...")
 	print(history.history)
 	
 	accuracy = history.history["acc"]
+	jaccInd = history.history["jaccardIndex"]
+	diceInd = history.history["diceIndex"]
 	val_accuracy = history.history["val_acc"]
-	# ~ accuracy = history.history["jaccardIndex"] #####################################################
-	# ~ val_accuracy = history.history["val_jaccardIndex"]
-	jaccInd = history.history["jaccardIndex"] #####################################################
-	diceInd = history.history["diceIndex"] #####################################################
-	val_jaccInd = history.history["val_jaccardIndex"] #####################################################
-	val_diceInd = history.history["val_diceIndex"] #####################################################
-	
-	print("val_jacc: " + str(val_jaccInd))
-	print("val_dice: " + str(val_diceInd))
-	
-	exit(2)
-	
+	val_jaccInd = history.history["val_jaccardIndex"]
+	val_diceInd = history.history["val_diceIndex"]
+
 	loss = history.history["loss"]
 	val_loss = history.history["val_loss"]
 	epochs = range(1, len(accuracy) + 1)
-	plt.plot(epochs, accuracy, "o", label="Training accuracy")
-	plt.plot(epochs, val_accuracy, "^", label="Validation accuracy")
+	plt.plot(epochs, accuracy, "^", label="Training accuracy")
+	plt.plot(epochs, val_accuracy, "2", label="Validation accuracy")
 	plt.plot(epochs, jaccInd, "*", label="Jaccard Index")
-	plt.plot(epochs, diceInd, "D", label="Dice Index")
+	plt.plot(epochs, val_jaccInd, "p", label="Validation Jaccard Index")
+	plt.plot(epochs, diceInd, "s", label="Dice Index")
+	plt.plot(epochs, val_diceInd, "D", label="Validation Dice Index")
 	plt.title("Training and validation accuracy")
 	plt.legend()
 	plt.savefig(os.path.join(tmpFolder, "trainvalacc.png"))
 	plt.clf()
 	
-	plt.plot(epochs, loss, "o", label="Training loss")
-	plt.plot(epochs, val_loss, "^", label="Validation loss")
+	plt.plot(epochs, loss, "^", label="Training loss")
+	plt.plot(epochs, val_loss, "2", label="Validation loss")
 	plt.title("Training and validation loss")
 	plt.legend()
 	plt.savefig(os.path.join(tmpFolder, "trainvalloss.png"))
@@ -561,7 +555,7 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 			mode = "max")
 			# ~ mode = "min")
 	earlyStopper = callbacks.EarlyStopping( \
-			monitor="jaccardIndex", \
+			monitor="val_jaccardIndex", \
 			patience = 5, \
 			mode = "max", \
 			#not sure about resotre weights...
