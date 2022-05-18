@@ -63,11 +63,11 @@ GLOBAL_INITIAL_FILTERS = 16
 GLOBAL_SMOOTH_JACCARD = 1
 GLOBAL_SMOOTH_DICE = 1
 
-IS_GLOBAL_PRINTING_ON = False
-# ~ IS_GLOBAL_PRINTING_ON = True
+# ~ IS_GLOBAL_PRINTING_ON = False
+IS_GLOBAL_PRINTING_ON = True
 
-# ~ GLOBAL_SQUARE_TEST_SAVE = True
-GLOBAL_SQUARE_TEST_SAVE = False
+GLOBAL_SQUARE_TEST_SAVE = True
+# ~ GLOBAL_SQUARE_TEST_SAVE = False
 
 GLOBAL_MAX_TEST_SQUARE_TO_SAVE = 66
 
@@ -95,14 +95,13 @@ def main(args):
 	trainImages, trainTruth, testImages, testTruths, wholeOriginals, wholeTruths = createTrainAndTestSets()
 	print("Done!")
 	
-	print("All working so far?! Halt. ################")############################################
-	exit(1)###########################################################################################
 	
 	#Images not currently called from disk. Commenting for speed testing.
 	# ~ saveExperimentImages(trainImages, trainTruth, testImages, testTruths, trainingFolder)
 
 	if IS_GLOBAL_PRINTING_ON:
 		mainTestPrintOne(wholeOriginals, wholeTruths, trainImages, trainTruth, testImages, testTruths)
+	
 
 	trainImages, trainTruth, testImages, testTruths \
 			= reduceInputForTesting(trainImages, trainTruth, testImages, testTruths, NUM_SQUARES)
@@ -110,7 +109,7 @@ def main(args):
 	theModel, theHistory = trainUnet(trainImages, trainTruth, checkpointFolder)
 
 	print("Saving model...")
-	theModel.save(savedModelFolder + "saved-model.h5")
+	theModel.save(os.path.join(savedModelFolder, "saved-model.h5"))
 	print("Done!")
 
 	
@@ -129,11 +128,11 @@ def main(args):
 
 	print("Calculating jaccard and dice for the test squares...")
 	calculateJaccardDiceTestSquares(testTruths, outTextPath, binarizedOut)
-	
+
 	print("Predicting output of whole images...")
 	#currently also does the image processing and saving.
-	predictionsList = predictAllWholeImages(wholeOriginals, wholeTruths, theModel, HACK_SIZE, wholePredictionsFolder)
-	
+	predictionsList = predictAllWholeImages(wholeOriginals, wholeTruths, theModel, HACK_SIZE)
+
 	print("Creating confusion masks...")
 	confusionImages, tpList, fpList, tnList, fnList \
 			= createConfusionImageList(predictionsList, wholeOriginals, wholeTruths)
@@ -171,6 +170,7 @@ def createFolders():
 		if not os.path.isdir(folder):
 			os.makedirs(folder)
 
+	#Lol spaghetti
 	global OUT_TEXT_PATH
 	OUT_TEXT_PATH = os.path.join(tmpFolder, "accuracy-jaccard-dice.txt")
 	
@@ -254,13 +254,12 @@ def saveTestSquares(numToSave, modelOut, binarizedOut, testImages, testTruths, p
 	if len(modelOut) < numToSave:
 		numToSave = len(modelOut)
 	saveIndexes = rng2.integers(low = 0, high = len(modelOut), size = numToSave)
-	
 
 	for i in tqdm(saveIndexes):
-		imsave(predictionsFolder + "fig[" + str(i) + "]premask.png", img_as_ubyte(modelOut[i]))
-		imsave(predictionsFolder + "fig[" + str(i) + "]predict.png", img_as_ubyte(binarizedOut[i]))
-		imsave(predictionsFolder + "fig[" + str(i) + "]testimg.png", img_as_ubyte(testImages[i]))
-		imsave(predictionsFolder + "fig[" + str(i) + "]truthim.png", img_as_ubyte(testTruths[i]))
+		imsave(os.path.join(predictionsFolder, "fig[" + str(i) + "]premask.png"), img_as_ubyte(modelOut[i]))
+		imsave(os.path.join(predictionsFolder, "fig[" + str(i) + "]predict.png"), img_as_ubyte(binarizedOut[i]))
+		imsave(os.path.join(predictionsFolder, "fig[" + str(i) + "]testimg.png"), img_as_ubyte(testImages[i]))
+		imsave(os.path.join(predictionsFolder, "fig[" + str(i) + "]truthim.png"), img_as_ubyte(testTruths[i]))
 	print("Done!")
 
 
@@ -268,7 +267,7 @@ def calculateJaccardDiceTestSquares(testTruths, outTextPath, binarizedOut):
 	testTruthsUInt = testTruths.astype(np.uint8)
 	
 	#Testing the jaccard and dice functions
-	with open(outTextPath + "testsquares", "w") as outFile:
+	with open(os.path.join(outTextPath), "w") as outFile:
 		for i in tqdm(range(len(binarizedOut))):
 			jac = jaccardIndex(testTruthsUInt[i], binarizedOut[i])
 			dice = diceIndex(testTruthsUInt[i], binarizedOut[i])
@@ -278,7 +277,7 @@ def calculateJaccardDiceTestSquares(testTruths, outTextPath, binarizedOut):
 
 
 #currently also does the image processing and saving.
-def predictAllWholeImages(wholeOriginals, wholeTruths, theModel, squareSize, wholePredictionsFolder):
+def predictAllWholeImages(wholeOriginals, wholeTruths, theModel, squareSize):
 	if IS_GLOBAL_PRINTING_ON:
 		print("shape of wholeOriginals: " + str(np.shape(wholeOriginals)))
 		for i in range(len(wholeOriginals)):
@@ -335,10 +334,10 @@ def createConfusionImageList(predictionsList, wholeOriginals, wholeTruths):
 
 def saveAllWholeAndConfusion(predictionsList, wholeOriginals, wholeTruths, confusions, wholePredictionsFolder):
 	for i in tqdm(range(len(predictionsList))):
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]predicted.png", img_as_ubyte(predictionsList[i]))
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]truth.png", img_as_ubyte(wholeTruths[i]))
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]original.png", img_as_ubyte(wholeOriginals[i]))
-		imsave(wholePredictionsFolder + "img[" + str(i) + "]confusion.png", img_as_ubyte(confusions[i]))
+		imsave(os.path.join(wholePredictionsFolder, "img[" + str(i) + "]predicted.png"), img_as_ubyte(predictionsList[i]))
+		imsave(os.path.join(wholePredictionsFolder, "img[" + str(i) + "]truth.png"), img_as_ubyte(wholeTruths[i]))
+		imsave(os.path.join(wholePredictionsFolder, "img[" + str(i) + "]original.png"), img_as_ubyte(wholeOriginals[i]))
+		imsave(os.path.join(wholePredictionsFolder, "img[" + str(i) + "]confusion.png"), img_as_ubyte(confusions[i]))
 
 
 def createROC(tpList, fpList, tnList, fnList, tmpFolder):
@@ -397,7 +396,7 @@ def plotROCandSave(fpList, tpList, tmpFolder):
 	plt.ylabel("True Positive Rate")
 	plt.title("ROC curve !")
 	plt.legend(loc="lower right")
-	plt.savefig(tmpFolder + "roc-curve.png")
+	plt.savefig(os.path.join(tmpFolder, "roc-curve.png"))
 	plt.show()
 
 
@@ -525,14 +524,14 @@ def performEvaluation(history, tmpFolder, testImages, testTruths, theModel):
 	plt.plot(epochs, diceInd, "D", label="Dice Index")
 	plt.title("Training and validation accuracy")
 	plt.legend()
-	plt.savefig(tmpFolder + "trainvalacc.png")
+	plt.savefig(os.path.join(tmpFolder, "trainvalacc.png"))
 	plt.clf()
 	
 	plt.plot(epochs, loss, "o", label="Training loss")
 	plt.plot(epochs, val_loss, "^", label="Validation loss")
 	plt.title("Training and validation loss")
 	plt.legend()
-	plt.savefig(tmpFolder + "trainvalloss.png")
+	plt.savefig(os.path.join(tmpFolder, "trainvalloss.png"))
 	plt.clf()
 
 
@@ -938,12 +937,6 @@ def createTrainImageAndTrainTruthFileNames(trainImagePath, trainTruthPath):
 	
 	
 	trainImageFileNames = prependPath(trainImagePath, trainImageFileNames)
-	for hehe in trainImageFileNames:
-		print(hehe)
-	
-	print("testhalt") #######################################################
-	exit(3) #######################################################
-	
 	trainTruthFileNames = prependPath(trainTruthPath, trainTruthFileNames)
 	
 	return trainImageFileNames, trainTruthFileNames
@@ -1000,7 +993,7 @@ def jaccardIndex(truth, prediction):
 	#Is it better than backend.sum?? ##################################################################
 	#the docs say it is equivalent except that numpy will change everything to int64
 
-	return (numberPixelsSame + smooth) / \
+	return float(numberPixelsSame + smooth) / \
 			( \
 			(backend.sum(predictionFlat) + backend.sum(truthFlat) - numberPixelsSame + smooth) \
 			)
@@ -1018,8 +1011,8 @@ def diceIndex(truth, prediction):
 	truthFlat = backend.flatten(truth)
 	numberSamePixels = backend.sum(predictionFlat * truthFlat)
 	
-	return (2 * numberSamePixels + smooth) \
-			/ (backend.sum(predictionFlat) + backend.sum(truthFlat) + smooth)
+	return float((2 * numberSamePixels + smooth) \
+			/ (backend.sum(predictionFlat) + backend.sum(truthFlat) + smooth))
 
 #Loss function for use in training
 def diceLoss(truth, prediction):
