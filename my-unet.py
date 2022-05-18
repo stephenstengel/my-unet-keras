@@ -14,7 +14,8 @@
 
 print("Running imports...")
 import os
-# ~ os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+import shutil
+
 import numpy as np
 import random
 from PIL import Image
@@ -70,8 +71,8 @@ GLOBAL_SQUARE_TEST_SAVE = False
 
 GLOBAL_MAX_TEST_SQUARE_TO_SAVE = 66
 
-HELPFILE_PATH = "helpfile"
-OUT_TEXT_PATH = "accuracies-if-error-happens-lol"
+HELPFILE_PATH = os.path.normpath("helpfile")
+OUT_TEXT_PATH = os.path.normpath("accuracies-if-error-happens-lol")
 
 print("Done!")
 
@@ -85,6 +86,9 @@ def main(args):
 			predictionsFolder, wholePredictionsFolder, outTextPath \
 			= createFolders()
 	print("Done!")
+	
+	print("All working so far?! Halt.")
+	exit(1)
 	
 	print("Creating copy of source code and conda environment...")
 	copySourceEnv(tmpFolder)
@@ -153,19 +157,22 @@ def createFolders():
 	hk = str(HACK_SIZE)
 	ep = str(GLOBAL_EPOCHS)
 	ba = str(GLOBAL_BATCH_SIZE)
-	tmpFolder = "./tmp" + sq + "-" + hk + "-" + ep + "-" + ba + "/"
-	trainingFolder = tmpFolder + "trainingstuff/"
-	checkpointFolder = tmpFolder + "checkpoint/"
-	savedModelFolder = tmpFolder + "saved-model/"
-	predictionsFolder = tmpFolder + "predictions/"
-	wholePredictionsFolder = tmpFolder + "whole-predictions/"
-	os.system("mkdir -p " + trainingFolder)
-	os.system("mkdir -p " + checkpointFolder)
-	os.system("mkdir -p " + savedModelFolder)
-	os.system("mkdir -p " + predictionsFolder)
-	os.system("mkdir -p " + wholePredictionsFolder)
+	tmpFolder = os.path.normpath("./tmp" + sq + "-" + hk + "-" + ep + "-" + ba + "/")
+	trainingFolder = os.path.join(tmpFolder, "trainingstuff")
+	checkpointFolder = os.path.join(tmpFolder, "checkpoint")
+	savedModelFolder = os.path.join(tmpFolder, "saved-model")
+	predictionsFolder = os.path.join(tmpFolder, "predictions")
+	wholePredictionsFolder = os.path.join(tmpFolder, "whole-predictions")
+	foldersToCreate = [ \
+			tmpFolder, trainingFolder, \
+			checkpointFolder, savedModelFolder, \
+			predictionsFolder, wholePredictionsFolder]
+	for folder in foldersToCreate:
+		if not os.path.isdir(folder):
+			os.makedirs(folder)
+
 	global OUT_TEXT_PATH
-	OUT_TEXT_PATH = tmpFolder + "accuracy-jaccard-dice.txt"
+	OUT_TEXT_PATH = os.path.join(tmpFolder, "accuracy-jaccard-dice.txt")
 	
 	return tmpFolder, trainingFolder, checkpointFolder, savedModelFolder, predictionsFolder, wholePredictionsFolder, OUT_TEXT_PATH
 
