@@ -559,7 +559,7 @@ def performEvaluation(history, tmpFolder, testImages, testTruths, theModel):
 
 def saveGraphNumbers(array, epochs, nameString, tmpFolder):
 	with open(os.path.join(tmpFolder, "graph-numbers", nameString + ".txt")) as statFile:
-		statFile.write(nameString + "\n")
+		statFile.write(nameString + " over " + str(epochs) + "epochs" + "\n")
 		for thing in array:
 			statFile.write(str(thing) + "\n")
 			
