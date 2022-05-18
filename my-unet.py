@@ -128,8 +128,8 @@ def main(args):
 	else:
 		print("Not saving test square pictures this time.")
 
-	print("Calculating jaccard and dice for the test squares...")
-	calculateJaccardDiceTestSquares(testTruths, outTextPath, binarizedOut)
+	# ~ print("Calculating jaccard and dice for the test squares...")
+	# ~ calculateJaccardDiceTestSquares(testTruths, outTextPath, binarizedOut)
 
 	print("Predicting output of whole images...")
 	#currently also does the image processing and saving.
@@ -144,8 +144,8 @@ def main(args):
 	print("Creating ROC graph of the whole images test...")
 	createROC(tpList, fpList, tnList, fnList, tmpFolder)
 	
-	print("Evaluating jaccard and dice scores...")
-	evaluatePredictionJaccardDice(predictionsList, wholeTruths, outTextPath)
+	# ~ print("Evaluating jaccard and dice scores...")
+	# ~ evaluatePredictionJaccardDice(predictionsList, wholeTruths, outTextPath)
 
 	print("Done!")
 	
@@ -239,19 +239,19 @@ def mainTestPrintOne(wholeOriginals, wholeTruths, trainImages, trainTruth, testI
 	randomBoy = random.randint(0, len(trainImages) - 1)
 	print("image " + str(randomBoy) + "...")
 	imshow(trainImages[randomBoy] / 255)
-	plt.show()
+	# ~ plt.show()
 	print("truth " + str(randomBoy) + "...")
 	imshow(np.squeeze(trainTruth[randomBoy]))
-	plt.show()
+	# ~ plt.show()
 	
 	print("Showing Testing stuff...")
 	randomBoy = random.randint(0, len(testImages) - 1)
 	print("image " + str(randomBoy) + "...")
 	imshow(testImages[randomBoy] / 255)
-	plt.show()
+	# ~ plt.show()
 	print("truth " + str(randomBoy) + "...")
 	imshow(np.squeeze(testTruths[randomBoy]))
-	plt.show()
+	# ~ plt.show()
 
 
 #save copies of some of the squares used in learning.
@@ -405,7 +405,7 @@ def plotROCandSave(fpList, tpList, tmpFolder):
 	plt.title("ROC curve !")
 	plt.legend(loc="lower right")
 	plt.savefig(os.path.join(tmpFolder, "roc-curve.png"))
-	plt.show()
+	# ~ plt.show()
 
 
 def getPercentTrueFromMaskList(inList):
