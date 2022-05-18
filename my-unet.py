@@ -524,7 +524,20 @@ def performEvaluation(history, tmpFolder, testImages, testTruths, theModel):
 
 	loss = history.history["loss"]
 	val_loss = history.history["val_loss"]
+	
 	epochs = range(1, len(accuracy) + 1)
+	
+	#make a loop for this bit?
+	saveGraphNumbers(accuracy, epochs, "acc", tmpFolder)
+	saveGraphNumbers(jaccInd, epochs, "jaccardIndex", tmpFolder)
+	saveGraphNumbers(diceInd, epochs, "diceIndex", tmpFolder)
+	saveGraphNumbers(val_accuracy, epochs, "val_acc", tmpFolder)
+	saveGraphNumbers(val_jaccInd, epochs, "val_jaccardIndex", tmpFolder)
+	saveGraphNumbers(val_diceInd, epochs, "val_diceIndex", tmpFolder)
+	saveGraphNumbers(loss, epochs, "loss", tmpFolder)
+	saveGraphNumbers(val_loss, epochs, "val_loss", tmpFolder)
+	
+	
 	plt.plot(epochs, accuracy, "^", label="Training accuracy")
 	plt.plot(epochs, val_accuracy, "2", label="Validation accuracy")
 	plt.plot(epochs, jaccInd, "*", label="Jaccard Index")
@@ -543,6 +556,13 @@ def performEvaluation(history, tmpFolder, testImages, testTruths, theModel):
 	plt.savefig(os.path.join(tmpFolder, "trainvalloss.png"))
 	plt.clf()
 
+
+def saveGraphNumbers(array, epochs, nameString, tmpFolder):
+	with open(os.path.join(tmpFolder, "graph-numbers", nameString + ".txt")) as statFile:
+		statFile.write(nameString + "\n")
+		for thing in array:
+			statFile.write(str(thing) + "\n")
+			
 
 def trainUnet(trainImages, trainTruth, checkpointFolder):
 	
