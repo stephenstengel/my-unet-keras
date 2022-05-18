@@ -149,12 +149,12 @@ def main(args):
 
 	print("Done!")
 	
-	saveRuntimeToFile(startTime)
+	saveRuntimeToFile(startTime, tmpFolder)
 	
 	return 0
 
 
-def saveRuntimeToFile(startTime):
+def saveRuntimeToFile(startTime, tmpFolder):
 	elapsedTime = time.time() - startTime
 	with open(os.path.join(tmpFolder, "runtime.txt"), "w") as timeFile:
 		timeFile.write(str(round(elapsedTime, 4)) + " seconds")
