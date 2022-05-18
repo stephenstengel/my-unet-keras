@@ -32,7 +32,7 @@ from sklearn.metrics import auc
 
 
 import tensorflow as tf
-from keras.layers import Conv2D, MaxPool2D, UpSampling2D, merge, Input, Dropout, Lambda, MaxPooling2D, Conv2DTranspose, Concatenate, Softmax
+from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Input, Dropout, Lambda, MaxPooling2D, Conv2DTranspose, Concatenate, Softmax
 from tensorflow.keras.optimizers import Adam
 from keras import Model, callbacks
 from keras import backend
