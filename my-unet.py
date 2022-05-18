@@ -86,10 +86,7 @@ def main(args):
 			predictionsFolder, wholePredictionsFolder, outTextPath \
 			= createFolders()
 	print("Done!")
-	
-	print("All working so far?! Halt.")
-	exit(1)
-	
+
 	print("Creating copy of source code and conda environment...")
 	copySourceEnv(tmpFolder)
 	print("Done!")
@@ -97,6 +94,9 @@ def main(args):
 	print("Creating train and test sets...")
 	trainImages, trainTruth, testImages, testTruths, wholeOriginals, wholeTruths = createTrainAndTestSets()
 	print("Done!")
+	
+	print("All working so far?! Halt. ################")############################################
+	exit(1)###########################################################################################
 	
 	#Images not currently called from disk. Commenting for speed testing.
 	# ~ saveExperimentImages(trainImages, trainTruth, testImages, testTruths, trainingFolder)
@@ -178,9 +178,12 @@ def createFolders():
 
 
 def copySourceEnv(tmpFolder):
-	os.system("cp my-unet.py " + tmpFolder + "my-unet.py") # how get filename?
-	os.system("cp working-conda-config.yml  " + tmpFolder + "working-conda-config.yml")
-
+	try:
+		shutil.copy("my-unet.py", tmpFolder)
+		shutil.copy("working-conda-config.yml", tmpFolder)
+	except:
+		print("copy error! Source code and conda environment file not copied!")
+		
 	#This would be preferred in the final product.
 	# ~ print("Creating current copy of environment...")
 	# ~ os.system("conda env export >  " + tmpFolder + "working-conda-config-current.yml")
@@ -874,8 +877,8 @@ def convertImagesToGrayscaleList(inputImages):
 def getFileNames():
 	trainTruthNamePairs = []
 	
-	trainImagePath = "../DIBCO/2017/Dataset/"
-	trainTruthPath = "../DIBCO/2017/GT/"
+	trainImagePath = os.path.normpath("../DIBCO/2017/Dataset/")
+	trainTruthPath = os.path.normpath("../DIBCO/2017/GT/")
 	trainTruthNamePairs.append( (trainImagePath, trainTruthPath) )
 	# ~ trainImageFileNames, trainTruthFileNames = \
 			# ~ createTrainImageAndTrainTruthFileNames(trainImagePath, trainTruthPath)
@@ -915,8 +918,8 @@ def getFileNames():
 		trainTruthFileNames.extend(gtNames)
 	
 	#test image section
-	testImagePath = "../DIBCO/2016/DIPCO2016_dataset/"
-	testTruthPath = "../DIBCO/2016/DIPCO2016_Dataset_GT/"
+	testImagePath = os.path.normpath("../DIBCO/2016/DIPCO2016_dataset/")
+	testTruthPath = os.path.normpath("../DIBCO/2016/DIPCO2016_Dataset_GT/")
 	testImageFileNames, testTruthFileNames = \
 			createTrainImageAndTrainTruthFileNames(testImagePath, testTruthPath)
 	
@@ -935,6 +938,12 @@ def createTrainImageAndTrainTruthFileNames(trainImagePath, trainTruthPath):
 	
 	
 	trainImageFileNames = prependPath(trainImagePath, trainImageFileNames)
+	for hehe in trainImageFileNames:
+		print(hehe)
+	
+	print("testhalt") #######################################################
+	exit(3) #######################################################
+	
 	trainTruthFileNames = prependPath(trainTruthPath, trainTruthFileNames)
 	
 	return trainImageFileNames, trainTruthFileNames
@@ -962,7 +971,7 @@ def appendBMP(inputList):
 	return [name + ".bmp" for name in inputList]
 	
 def prependPath(myPath, nameList):
-	return [myPath + name for name in nameList]
+	return [os.path.join(myPath, name) for name in nameList]
 
 
 #I'm copying the code for jaccard similarity and dice from this MIT licenced source.
