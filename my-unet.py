@@ -63,8 +63,8 @@ GLOBAL_INITIAL_FILTERS = 16
 GLOBAL_SMOOTH_JACCARD = 1
 GLOBAL_SMOOTH_DICE = 1
 
-# ~ IS_GLOBAL_PRINTING_ON = False
-IS_GLOBAL_PRINTING_ON = True
+IS_GLOBAL_PRINTING_ON = False
+# ~ IS_GLOBAL_PRINTING_ON = True
 
 GLOBAL_SQUARE_TEST_SAVE = True
 # ~ GLOBAL_SQUARE_TEST_SAVE = False
@@ -514,6 +514,13 @@ def performEvaluation(history, tmpFolder, testImages, testTruths, theModel):
 	# ~ val_accuracy = history.history["val_jaccardIndex"]
 	jaccInd = history.history["jaccardIndex"] #####################################################
 	diceInd = history.history["diceIndex"] #####################################################
+	val_jaccInd = history.history["val_jaccardIndex"] #####################################################
+	val_diceInd = history.history["val_diceIndex"] #####################################################
+	
+	print("val_jacc: " + str(val_jaccInd))
+	print("val_dice: " + str(val_diceInd))
+	
+	exit(2)
 	
 	loss = history.history["loss"]
 	val_loss = history.history["val_loss"]
@@ -542,7 +549,6 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 	# ~ standardUnetLol = BCDU_net_D3( (GLOBAL_HACK_height, GLOBAL_HACK_width, IMAGE_CHANNELS) )
 	standardUnetLol.summary()
 	
-	# ~ earlyStopper = callbacks.EarlyStopping(monitor="val_loss", patience = 2)
 	checkpointer = callbacks.ModelCheckpoint(
 			filepath = checkpointFolder,
 			# ~ monitor = "val_acc", #current working version
@@ -554,8 +560,13 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 			save_best_only = True,
 			mode = "max")
 			# ~ mode = "min")
-	# ~ callbacks_list = [earlyStopper, checkpointer]
-	callbacks_list = [checkpointer]
+	earlyStopper = callbacks.EarlyStopping( \
+			monitor="jaccardIndex", \
+			patience = 5, \
+			mode = "max", \
+			#not sure about resotre weights...
+			restore_best_weights = True)
+	callbacks_list = [earlyStopper, checkpointer]
 	
 	myHistory = standardUnetLol.fit(
 			x = trainImages,
@@ -993,10 +1004,10 @@ def jaccardIndex(truth, prediction):
 	#Is it better than backend.sum?? ##################################################################
 	#the docs say it is equivalent except that numpy will change everything to int64
 
-	return float(numberPixelsSame + smooth) / \
+	return float((numberPixelsSame + smooth) / \
 			( \
 			(backend.sum(predictionFlat) + backend.sum(truthFlat) - numberPixelsSame + smooth) \
-			)
+			))
 
 
 #loss function for use in training.
