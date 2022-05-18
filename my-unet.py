@@ -30,6 +30,7 @@ from skimage.util import invert
 from skimage.color import rgb2gray, gray2rgb, rgb2hsv, hsv2rgb
 from sklearn.metrics import auc
 
+import time
 
 import tensorflow as tf
 from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Input, Dropout, Lambda, MaxPooling2D, Conv2DTranspose, Concatenate, Softmax
@@ -77,6 +78,7 @@ OUT_TEXT_PATH = os.path.normpath("accuracies-if-error-happens-lol")
 print("Done!")
 
 def main(args):
+	startTime = time.time()
 	print("Hi!")
 	
 	checkArgs(args)
@@ -147,9 +149,15 @@ def main(args):
 
 	print("Done!")
 	
+	saveRuntimeToFile(startTime)
 	
 	return 0
 
+
+def saveRuntimeToFile(startTime):
+	elapsedTime = time.time() - startTime
+	with open(os.path.join(tmpFolder, "runtime.txt"), "w") as timeFile:
+		timeFile.write(str(round(elapsedTime, 4)) + " seconds")
 
 def createFolders():
 	sq = str(NUM_SQUARES)
