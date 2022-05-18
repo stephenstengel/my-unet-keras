@@ -93,8 +93,19 @@ def main(args):
 	copySourceEnv(tmpFolder)
 	print("Done!")
 
+	trainImagePath = os.path.normpath("../DIBCO/2017/Dataset/")
+	trainTruthPath = os.path.normpath("../DIBCO/2017/GT/")
+	testImagePath = os.path.normpath("../DIBCO/2016/DIPCO2016_dataset/")
+	testTruthPath = os.path.normpath("../DIBCO/2016/DIPCO2016_Dataset_GT/")
+	# ~ testImagePath = os.path.normpath("../DIBCO/2017/Dataset/")
+	# ~ testTruthPath = os.path.normpath("../DIBCO/2017/GT/")
+	# ~ trainImagePath = os.path.normpath("../DIBCO/2016/DIPCO2016_dataset/")
+	# ~ trainTruthPath = os.path.normpath("../DIBCO/2016/DIPCO2016_Dataset_GT/")
+
 	print("Creating train and test sets...")
-	trainImages, trainTruth, testImages, testTruths, wholeOriginals, wholeTruths = createTrainAndTestSets()
+	trainImages, trainTruth, testImages, \
+	testTruths, wholeOriginals, wholeTruths = \
+			createTrainAndTestSets(trainImagePath, trainTruthPath, testImagePath, testTruthPath)
 	print("Done!")
 	
 	
@@ -704,9 +715,9 @@ def saveExperimentImages(trainImages, trainTruth, testImages, testTruths, tmpFol
 #gets images from file, manipulates, returns
 #currently hardcoded to use 2017 as training data, and 2016 as testing
 #data because their names are regular!
-def createTrainAndTestSets():
+def createTrainAndTestSets(trainImagePath, trainTruthPath, testImagePath, testTruthPath):
 	trainImageFileNames, trainTruthFileNames, \
-		testImageFileNames, testTruthFileNames = getFileNames()
+		testImageFileNames, testTruthFileNames = getFileNames(trainImagePath, trainTruthPath, testImagePath, testTruthPath)
 
 	trainImages, trainTruth, _, _ = getImageAndTruth(trainImageFileNames, trainTruthFileNames)
 	trainTruth = convertImagesToGrayscale(trainTruth)
@@ -911,11 +922,11 @@ def convertImagesToGrayscaleList(inputImages):
 #returns the filenames of the images for (trainImage, trainTruth),(testimage, testTruth)
 #hardcoded!
 #Test is currently hardcodded to 2016
-def getFileNames():
+def getFileNames(trainImagePath, trainTruthPath, testImagePath, testTruthPath):
 	trainTruthNamePairs = []
 	
-	trainImagePath = os.path.normpath("../DIBCO/2017/Dataset/")
-	trainTruthPath = os.path.normpath("../DIBCO/2017/GT/")
+	# ~ trainImagePath = os.path.normpath("../DIBCO/2017/Dataset/")
+	# ~ trainTruthPath = os.path.normpath("../DIBCO/2017/GT/")
 	trainTruthNamePairs.append( (trainImagePath, trainTruthPath) )
 	# ~ trainImageFileNames, trainTruthFileNames = \
 			# ~ createTrainImageAndTrainTruthFileNames(trainImagePath, trainTruthPath)
@@ -955,8 +966,8 @@ def getFileNames():
 		trainTruthFileNames.extend(gtNames)
 	
 	#test image section
-	testImagePath = os.path.normpath("../DIBCO/2016/DIPCO2016_dataset/")
-	testTruthPath = os.path.normpath("../DIBCO/2016/DIPCO2016_Dataset_GT/")
+	# ~ testImagePath = os.path.normpath("../DIBCO/2016/DIPCO2016_dataset/")
+	# ~ testTruthPath = os.path.normpath("../DIBCO/2016/DIPCO2016_Dataset_GT/")
 	testImageFileNames, testTruthFileNames = \
 			createTrainImageAndTrainTruthFileNames(testImagePath, testTruthPath)
 	
