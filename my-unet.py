@@ -884,7 +884,7 @@ def predictWholeImage(inputImage, theModel, squareSize):
 		for j in range(squaresWide):
 			# ~ print("i: " + str(i) + "\tj: " + str(j))
 			# ~ print("sqHi: " + str(squaresHigh) + "\tsqWi: " + str(squaresWide))
-			thisSquare = binarizedOuts[(i * squaresWide) + j] #w?
+			thisSquare = binarizedOuts[(i * squaresWide) + j] #w? I got an index out of range here.
 			iStart = i * squareSize
 			iEnd = (i * squareSize) + squareSize
 			jStart = j * squareSize
