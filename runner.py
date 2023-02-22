@@ -10,5 +10,5 @@ sizes = [64, 128, 256, 512]
 for thisSize in sizes:
   for batchSize in range(1, 17):
     commandStr = "python3 my-unet.py 50000 " + str(thisSize) + " 100 " + str(batchSize)
-    # ~ print(commandStr)
+    print("Running: " + commandStr)
     os.system(commandStr)
