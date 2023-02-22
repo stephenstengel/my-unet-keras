@@ -12,6 +12,15 @@
 #using these as reference for some parts:
 #https://github.com/dexterfichuk/U-Net-Keras-Implementation
 
+# There is currently a bug in the image manipulation part causing
+# occasional index overflow. I might just re-write this whole thing
+# in pytorch anyway...
+
+# The graphs of training accuracy show that the accuracy goes down A LOT
+
+# Also, sometimes it just gets stuck marking the whole image as
+# background.
+
 print("Running imports...")
 import os
 import shutil
