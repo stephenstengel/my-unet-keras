@@ -588,23 +588,18 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 	
 	checkpointer = callbacks.ModelCheckpoint(
 			filepath = checkpointFolder,
-			# ~ monitor = "val_acc", #current working version
-			
-			# ~ monitor = "val_loss", #original ##################################################
-			# ~ monitor = "val_jaccardIndex",
-			monitor = "jaccardIndex",
-			# ~ monitor = "val_jaccardLoss",
+			monitor = "val_jaccardIndex",
 			save_best_only = True,
 			mode = "max")
-			# ~ mode = "min")
 	earlyStopper = callbacks.EarlyStopping( \
 			monitor="val_jaccardIndex", \
 			patience = 5, \
 			mode = "max", \
-			#not sure about resotre weights...
+			#restore best weights restores the weights at the epoch
+			#with the best results at the end of training.
 			restore_best_weights = True)
-	# ~ callbacks_list = [earlyStopper, checkpointer]
-	callbacks_list = [checkpointer]
+
+	callbacks_list = [earlyStopper, checkpointer]
 	
 	myHistory = standardUnetLol.fit(
 			x = trainImages,
@@ -635,7 +630,6 @@ def createStandardUnet():
 			loss = "binary_crossentropy",
 			# ~ loss = jaccardLoss,
 			metrics = ["acc", jaccardIndex, diceIndex])
-	
 	
 	return model
 
