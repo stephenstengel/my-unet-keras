@@ -604,6 +604,7 @@ def trainUnet(trainImages, trainTruth, checkpointFolder):
 			monitor="val_jaccardIndex", \
 			patience = 5, \
 			mode = "max", \
+			min_delta = 0.01, \
 			#restore best weights restores the weights at the epoch
 			#with the best results at the end of training.
 			restore_best_weights = True)
