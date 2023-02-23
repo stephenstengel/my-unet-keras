@@ -1213,10 +1213,8 @@ def combinePredictionPicture(truePosMask, trueNegMask, falsePosMask, falseNegMas
 
 
 def makeThisColorMaskHsv(predictionMask, colorArray, rows, cols):
-	thisColorMask = np.zeros((rows, cols, 3))
-	thisColorMask[ predictionMask ] = colorArray
+	return rgb2hsv(makeThisColorMaskRGB(predictionMask, colorArray, rows, cols))
 
-	return rgb2hsv(thisColorMask)
 
 def makeThisColorMaskRGB(predictionMask, colorArray, rows, cols):
 	thisColorMask = np.zeros((rows, cols, 3))
